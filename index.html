@@ -1,0 +1,2244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Micro-Virtual Lab — Uji Daya Hantar Listrik Larutan</title>
+<style>
+  :root{
+    --bg:#08161a; --panel:#102a2f; --panel2:#16383e;
+    --line:rgba(255,255,255,.12);
+    --accent:#3ddc97; --accent2:#4fc3f7;
+    --warn:#ffb74d; --danger:#ff6b6b;
+    --text:#e8f5f2; --muted:#9fb8b5; --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 15% 0%, #143a40 0%, transparent 45%),
+      radial-gradient(circle at 85% 100%, #0f2d33 0%, transparent 50%),
+      linear-gradient(180deg,#08161a,#061114 100%);
+    background-attachment:fixed; min-height:100vh; overflow-x:hidden;
+  }
+  button{font-family:inherit}
+
+  #topbar{
+    display:none; position:sticky;top:0;z-index:60;
+    align-items:center;gap:16px; padding:10px 20px;
+    background:rgba(8,22,26,.88); backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  #topbar.show{display:flex}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:.4px;font-size:14px;white-space:nowrap}
+  .brand .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.4;transform:scale(.8)}}
+  .bar{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;min-width:60px}
+  .bar > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .5s ease}
+  .tools{display:flex;gap:8px}
+  .ghost{
+    background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--text);
+    padding:8px 13px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;
+    transition:.2s;white-space:nowrap;
+  }
+  .ghost:hover{background:rgba(255,255,255,.14)}
+  .ghost.on{background:rgba(61,220,151,.2);border-color:var(--accent);color:var(--accent)}
+
+  #stage{position:relative}
+  .screen{display:none;padding:26px 20px 70px;max-width:1120px;margin:0 auto}
+  .screen.active{display:block;animation:fade .5s cubic-bezier(.2,.8,.2,1)}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+  h1,h2,h3{margin:0 0 10px;line-height:1.2}
+  h1{font-size:clamp(24px,4vw,38px);font-weight:800}
+  h2{font-size:clamp(20px,3vw,27px);font-weight:800}
+  h3{font-size:17px;font-weight:700}
+  h4{margin:0 0 8px}
+  p{margin:0 0 10px;color:#cfe3e0;line-height:1.65}
+  .muted{color:var(--muted);font-size:14px}
+  .eyebrow{text-transform:uppercase;letter-spacing:3px;font-size:11px;font-weight:800;color:var(--accent);margin-bottom:8px}
+
+  .btn{
+    background:linear-gradient(135deg,var(--accent),#1fa877);
+    color:#04241a;border:none;padding:13px 24px;border-radius:12px;
+    font-weight:800;cursor:pointer;font-size:15px;transition:.22s;
+    box-shadow:0 6px 18px rgba(61,220,151,.22);
+  }
+  .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 26px rgba(61,220,151,.34)}
+  .btn:active:not(:disabled){transform:translateY(0)}
+  .btn:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);box-shadow:none}
+  .btn.ghost:hover:not(:disabled){background:rgba(255,255,255,.08);box-shadow:none}
+  .btn.blue{background:linear-gradient(135deg,#4fc3f7,#2196f3);color:#03212f;box-shadow:0 6px 18px rgba(79,195,247,.22)}
+  .btn.warm{background:linear-gradient(135deg,#ffd166,#f4a261);color:#3a2200;box-shadow:0 6px 18px rgba(255,190,90,.22)}
+  .btn.small{padding:8px 14px;font-size:13px}
+
+  .narrator{
+    display:flex;gap:12px;align-items:flex-start;
+    background:linear-gradient(135deg,rgba(79,195,247,.12),rgba(61,220,151,.06));
+    border-left:3px solid var(--accent2); border-radius:0 12px 12px 0;
+    padding:14px 18px;margin:18px 0; animation:fade .5s;
+  }
+  .narrator .who{font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--accent2);text-transform:uppercase}
+  .narrator p{margin:3px 0 0;font-style:italic;color:#dff0ee}
+  .spk{
+    background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--accent2);
+    width:32px;height:32px;border-radius:50%;cursor:pointer;flex-shrink:0;font-size:14px;
+  }
+  .spk:hover{background:rgba(79,195,247,.22)}
+
+  .card{
+    background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+    border:1px solid var(--line);border-radius:var(--radius);padding:22px;
+    backdrop-filter:blur(6px);
+  }
+  .grid{display:grid;gap:18px}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+
+  #s1{padding:0}
+  #s1.active{
+    display:flex;align-items:center;justify-content:center;min-height:100vh;max-width:none;
+    background: repeating-linear-gradient(92deg,#5c3a22 0px,#6d4527 16px,#55341e 32px,#6d4527 48px), #5c3a22;
+    position:relative;
+  }
+  #s1.active::after{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 40%,rgba(0,0,0,0) 0%,rgba(0,0,0,.6) 100%);
+    pointer-events:none;
+  }
+  .paper{
+    position:relative;z-index:2;
+    background:linear-gradient(170deg,#fffdf6,#f2ead9);
+    color:#2a2a2a;border-radius:10px;
+    width:min(470px,92vw);padding:38px 36px 34px;
+    box-shadow:0 30px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.15);
+    border-left:7px solid #c9a227;
+    animation:drop .7s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes drop{from{opacity:0;transform:translateY(-30px) rotate(-1.5deg)}to{opacity:1;transform:none}}
+  .paper::before{content:'';position:absolute;left:46px;top:0;bottom:0;width:1px;background:rgba(200,80,80,.28)}
+  .paper h1{font-size:25px;color:#1f3b34;margin-bottom:4px}
+  .paper .sub{font-size:13px;color:#8b7c5c;margin-bottom:26px;letter-spacing:.4px}
+  .paper label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#7a6a4a;margin-bottom:7px}
+  .paper input{
+    width:100%;padding:13px 15px;border:1.5px solid #d9cdb2;border-radius:9px;
+    background:#fffdf7;font-size:15px;margin-bottom:20px;color:#2a2a2a;
+    transition:.2s;font-family:inherit;
+  }
+  .paper input:focus{outline:none;border-color:#3ddc97;box-shadow:0 0 0 3px rgba(61,220,151,.18)}
+  .paper .btn{width:100%;padding:15px;font-size:16px}
+  .paper .err{color:#c0392b;font-size:13px;margin:-10px 0 14px;font-weight:600;display:none}
+  .paper .err.show{display:block}
+
+  .home-hero{text-align:center;padding:40px 10px 10px}
+  .home-hero h1{
+    background:linear-gradient(120deg,#fff,var(--accent) 45%,var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px;
+  }
+  .greet{font-size:19px;font-weight:700;color:var(--accent)}
+  .home-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+  .home-deco{
+    margin:36px auto 0;max-width:820px;height:150px;border-radius:var(--radius);
+    background:linear-gradient(180deg,#1c4a44,#0f2a2a);
+    position:relative;overflow:hidden;border:1px solid var(--line);
+  }
+  .home-deco .sun{position:absolute;right:60px;top:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,#ffe9a8,#ffb74d);opacity:.5;filter:blur(4px)}
+  .home-deco .hill{position:absolute;bottom:0;width:130%;height:70px;background:#12332e;border-radius:50% 50% 0 0;left:-15%}
+  .home-deco .hill.b{bottom:-12px;height:60px;background:#0d2723;left:-40%;width:150%}
+  .home-deco .river{position:absolute;bottom:0;left:0;right:0;height:26px;background:linear-gradient(180deg,rgba(79,195,247,.45),rgba(79,195,247,.08))}
+  .home-deco .label{position:absolute;left:18px;bottom:10px;font-size:11px;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase}
+
+  .rig{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .lamp{width:38px;height:38px;border-radius:50%;background:#26383c;border:2px solid #40565a;position:relative;transition:.3s}
+  .lamp::after{content:'';position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);width:2px;height:12px;background:#40565a}
+  .lamp.bright{background:#fffbe0;border-color:#ffe066;box-shadow:0 0 14px 6px rgba(255,240,130,.95),0 0 46px 20px rgba(255,215,80,.45)}
+  .lamp.dim{background:#d4bd6a;border-color:#c9a94f;box-shadow:0 0 10px 4px rgba(255,215,120,.5);animation:flick .34s infinite alternate}
+  @keyframes flick{from{opacity:.45}to{opacity:1}}
+
+  .beaker-wrap{position:relative;padding-top:100px}
+  .rods{position:absolute;left:50%;transform:translateX(-50%);top:0;display:flex;gap:34px;transition:top .9s cubic-bezier(.34,1.3,.64,1);z-index:3}
+  .rig.dipped .rods{top:88px}
+  .rod{width:9px;height:118px;border-radius:4px;background:linear-gradient(90deg,#0d0d0d,#4a4a4a 40%,#1a1a1a);box-shadow:0 0 6px rgba(0,0,0,.5)}
+  .beaker{position:relative;width:132px;height:156px;border:3px solid rgba(190,225,240,.5);border-top:none;border-radius:0 0 18px 18px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01))}
+  .beaker::before{content:'';position:absolute;top:-6px;left:-9px;right:-9px;height:6px;border-radius:6px;background:rgba(190,225,240,.4)}
+  .liquid{position:absolute;left:0;right:0;bottom:0;height:66%;overflow:hidden;border-radius:0 0 15px 15px;background:linear-gradient(180deg,rgba(130,205,255,.30),rgba(60,140,220,.42));transition:.4s}
+  .bubbles{position:absolute;inset:0}
+  .bubble{position:absolute;bottom:4px;border-radius:50%;background:rgba(255,255,255,.75);animation:rise linear infinite}
+  @keyframes rise{from{transform:translateY(0) scale(.6);opacity:0}20%{opacity:.95}to{transform:translateY(-90px) scale(1.15);opacity:0}}
+  .beaker-tag{margin-top:10px;font-size:12px;font-weight:800;letter-spacing:1px;text-align:center;color:var(--muted);text-transform:uppercase}
+
+  .t1-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-top:20px}
+  .t1-card{
+    background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 14px;cursor:pointer;text-align:center;transition:.25s;position:relative;
+  }
+  .t1-card:hover{transform:translateY(-4px);border-color:rgba(61,220,151,.5);background:rgba(61,220,151,.06)}
+  .t1-card.opened{border-color:rgba(61,220,151,.5);cursor:default}
+  .t1-card.opened:hover{transform:none}
+  .t1-reveal{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);opacity:0;max-height:0;overflow:hidden;transition:.45s}
+  .t1-card.opened .t1-reveal{opacity:1;max-height:520px}
+  .t1-name{font-weight:800;font-size:15px;color:var(--accent);margin-bottom:4px}
+  .t1-desc{font-size:12.5px;color:#cfe3e0;line-height:1.5}
+  .t1-hint{font-size:11.5px;color:var(--muted);margin-top:8px;letter-spacing:.5px}
+
+  .slider-box{margin-top:18px}
+  input[type=range]{-webkit-appearance:none;width:100%;height:10px;border-radius:99px;background:linear-gradient(90deg,#4fc3f7,#3ddc97,#ffb74d);outline:none;margin:14px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;border:4px solid var(--accent);cursor:pointer;box-shadow:0 0 14px rgba(61,220,151,.7)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#fff;border:4px solid var(--accent);cursor:pointer}
+  .slider-labels{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);font-weight:700}
+  .slider-labels span{flex:1;text-align:center}
+  .slider-labels span:first-child{text-align:left}
+  .slider-labels span:last-child{text-align:right}
+  .readout{margin-top:16px;text-align:center;font-weight:800;font-size:16px;padding:12px;border-radius:12px;background:rgba(61,220,151,.1);border:1px solid rgba(61,220,151,.3);color:var(--accent);transition:.3s}
+  canvas{display:block;width:100%;border-radius:14px;background:#06161c}
+
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:13px 18px;border-radius:12px;cursor:grab;
+    background:linear-gradient(135deg,rgba(79,195,247,.18),rgba(79,195,247,.06));
+    border:1.5px solid rgba(79,195,247,.45);
+    font-weight:800;font-size:15px;color:#dff2ff;user-select:none;transition:.2s;
+  }
+  .chip:active{cursor:grabbing}
+  .chip.picked{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,151,.28);transform:scale(1.05)}
+  .slot{
+    min-height:64px;border:2px dashed rgba(255,255,255,.22);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;color:var(--muted);font-weight:700;text-align:center;
+    padding:8px;transition:.22s;background:rgba(255,255,255,.02);cursor:pointer;
+  }
+  .slot.over{border-color:var(--accent);background:rgba(61,220,151,.12);transform:scale(1.02)}
+  .slot.filled{border-style:solid;border-color:rgba(61,220,151,.6);background:rgba(61,220,151,.12);color:var(--accent)}
+  .slot.wrong{border-color:var(--danger);background:rgba(255,107,107,.14);animation:shake .4s}
+  @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  .match-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:20px}
+  .match-col h3{font-size:14px;text-align:center;color:var(--accent2);margin-bottom:10px;letter-spacing:.5px}
+
+  .tray{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+  .part{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    padding:14px 16px;border-radius:14px;cursor:grab;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1.5px solid var(--line);min-width:108px;transition:.2s;user-select:none;
+  }
+  .part:hover{border-color:rgba(79,195,247,.6);transform:translateY(-3px)}
+  .part.picked{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,151,.28)}
+  .part .ico{font-size:26px}
+  .part .nm{font-size:11.5px;font-weight:700;text-align:center;color:#cfe3e0}
+  .part.used{opacity:.25;pointer-events:none}
+  .board{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .board .slot{min-height:92px;flex-direction:column;gap:6px}
+  .board .slot .ico{font-size:26px}
+  .board .slot .nm{font-size:12px;color:var(--accent);font-weight:800}
+
+  .bench{display:grid;grid-template-columns:minmax(240px,1fr) minmax(280px,1.15fr);gap:22px;align-items:start;margin-top:18px}
+  @media(max-width:820px){.bench{grid-template-columns:1fr}}
+  .bench-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:26px 18px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:var(--radius);min-height:330px}
+  .bottle{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:12px 18px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin-bottom:8px}
+  .bottle .bi{font-size:30px}
+  .bottle .bn{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--accent2)}
+  .result-row{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px dashed rgba(255,255,255,.1);font-size:14px}
+  .result-row:last-child{border-bottom:none}
+  .result-row b{color:var(--accent)}
+  .badge{display:inline-block;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:800;letter-spacing:.5px}
+  .badge.strong{background:rgba(61,220,151,.18);color:var(--accent);border:1px solid rgba(61,220,151,.4)}
+  .badge.weak{background:rgba(255,183,77,.16);color:var(--warn);border:1px solid rgba(255,183,77,.4)}
+  .badge.none{background:rgba(255,107,107,.15);color:var(--danger);border:1px solid rgba(255,107,107,.4)}
+
+  .warn-box{background:rgba(255,107,107,.1);border-left:3px solid var(--danger);padding:12px 16px;border-radius:0 10px 10px 0;font-size:13.5px;color:#ffd7d7;margin:14px 0}
+
+  .label-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:18px 0}
+  .bottle-card{background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-align:center}
+  .bottle-card .bi{font-size:38px}
+  .bottle-card .bn{font-weight:800;margin:6px 0 4px;color:var(--accent2)}
+  .bottle-card .bh{font-size:12px;color:var(--muted);line-height:1.45;margin-bottom:12px}
+  .sticker{display:block;padding:12px;border-radius:11px;cursor:grab;font-weight:800;font-size:12.5px;background:linear-gradient(135deg,rgba(255,209,102,.2),rgba(244,162,97,.08));border:1.5px solid rgba(255,209,102,.5);color:#ffe9bd;text-align:center;transition:.2s;user-select:none}
+  .sticker.picked{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,151,.3)}
+  .sticker-tray{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:10px}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
+  th,td{padding:11px 12px;text-align:left;border-bottom:1px solid rgba(255,255,255,.09)}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);font-weight:800}
+  tr:hover td{background:rgba(255,255,255,.03)}
+
+  #journal{position:fixed;top:0;right:0;bottom:0;width:min(420px,92vw);z-index:90;background:linear-gradient(160deg,#0e262b,#081a1e);border-left:1px solid var(--line);transform:translateX(102%);transition:transform .38s cubic-bezier(.3,.9,.3,1);display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(0,0,0,.5)}
+  #journal.open{transform:none}
+  #journal header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  #journal .body{padding:18px 20px;overflow-y:auto;flex:1}
+  .jentry{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:11px;font-size:13px;animation:fade .35s}
+  .jentry .jt{font-weight:800;color:var(--accent);margin-bottom:5px;font-size:13.5px}
+  .jentry div{color:#cfe3e0;line-height:1.55}
+
+  #modal{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;background:rgba(3,10,12,.82);backdrop-filter:blur(6px);padding:20px}
+  #modal.open{display:flex;animation:fade .28s}
+  .modal-box{background:linear-gradient(160deg,#123037,#0a1e23);border:1px solid var(--line);border-radius:20px;padding:24px;width:min(780px,96vw);max-height:92vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+  .modal-box h3{color:var(--accent);margin-bottom:8px}
+  .modal-box .close-row{display:flex;justify-content:flex-end;margin-top:18px;gap:10px}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,120%);background:rgba(16,42,47,.97);border:1px solid var(--line);color:var(--text);padding:13px 22px;border-radius:99px;font-weight:700;font-size:14px;z-index:200;transition:transform .35s cubic-bezier(.3,.9,.3,1.3);box-shadow:0 14px 34px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  .toast.show{transform:translate(-50%,0)}
+  .toast.ok{border-color:rgba(61,220,151,.6)}
+  .toast.bad{border-color:rgba(255,107,107,.6)}
+  .pill{display:inline-block;padding:4px 11px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.6px;background:rgba(255,255,255,.09);color:var(--muted)}
+  .hint-list{list-style:none;padding:0;margin:8px 0}
+  .hint-list li{padding:8px 0 8px 26px;position:relative;font-size:14px;color:#cfe3e0;border-bottom:1px dashed rgba(255,255,255,.07)}
+  .hint-list li::before{content:'▸';position:absolute;left:6px;color:var(--accent)}
+
+  /* Ruang Teori 3 */
+  .why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
+  .why-card{background:linear-gradient(160deg,rgba(61,220,151,.08),rgba(61,220,151,.02));border:1px solid rgba(61,220,151,.3);border-radius:14px;padding:18px}
+  .why-card.warn{background:linear-gradient(160deg,rgba(255,183,77,.08),rgba(255,183,77,.02));border-color:rgba(255,183,77,.3)}
+  .why-card.danger{background:linear-gradient(160deg,rgba(255,107,107,.08),rgba(255,107,107,.02));border-color:rgba(255,107,107,.3)}
+  .why-card h4{margin:0 0 8px;font-size:14.5px}
+  .why-card.warn h4{color:var(--warn)}
+  .why-card.danger h4{color:var(--danger)}
+  .why-card:not(.warn):not(.danger) h4{color:var(--accent)}
+  .why-card p{margin:0 0 8px;font-size:13px;line-height:1.65;color:#cfe3e0}
+  .why-card p.ex{font-family:'Consolas','Courier New',monospace;font-size:12px;color:var(--accent2);margin:0;padding-top:8px;border-top:1px dashed rgba(255,255,255,.1)}
+
+  .micro-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:14px}
+  .micro-card{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+  .micro-card h4{margin:0 0 10px;font-size:13.5px}
+  .micro-card p{margin:10px 0 0;font-size:11.5px;line-height:1.55;color:var(--muted)}
+  .micro-card canvas{background:#04141b}
+
+  .steps{padding-left:22px;color:#cfe3e0;font-size:13.5px;line-height:1.85;margin-top:10px}
+  .steps li{margin-bottom:6px}
+  .steps b{color:var(--accent)}
+
+  .reaction-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:16px}
+  .reaction-card{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:14px;padding:16px}
+  .reaction-card .rc-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .reaction-card .rc-head .tag{font-size:11px;font-weight:800;letter-spacing:.5px;padding:3px 9px;border-radius:99px}
+  .reaction-card.strong .rc-head .tag{background:rgba(61,220,151,.18);color:var(--accent)}
+  .reaction-card.weak .rc-head .tag{background:rgba(255,183,77,.18);color:var(--warn)}
+  .reaction-card.none .rc-head .tag{background:rgba(255,107,107,.18);color:var(--danger)}
+  .reaction-card code{display:block;font-family:'Consolas','Courier New',monospace;font-size:13px;background:rgba(0,0,0,.28);padding:9px 12px;border-radius:8px;margin-top:8px;color:var(--accent2);letter-spacing:.3px;word-break:break-word}
+  .reaction-card .caption{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+  /* Compound info */
+  .compound-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:14px}
+  .compound-card{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:14px;padding:18px;position:relative;text-align:center}
+  .compound-card h4{margin:8px 0 4px;font-size:15px;color:var(--accent2)}
+  .compound-card .cc-name{font-size:13px;font-weight:700;color:#dff0ee;margin:0 0 6px}
+  .compound-card .cc-formula{font-family:'Consolas','Courier New',monospace;font-size:14px;color:var(--accent);font-weight:700;margin:0 0 10px;letter-spacing:.5px;padding:6px;background:rgba(0,0,0,.25);border-radius:8px}
+  .compound-card .cc-desc{font-size:12px;color:var(--muted);margin:0;line-height:1.55;text-align:left}
+  .cc-badge{position:absolute;top:12px;right:12px;font-size:10px;padding:4px 9px;border-radius:99px;font-weight:800;letter-spacing:.5px}
+  .cc-badge.none{background:rgba(255,107,107,.15);color:var(--danger);border:1px solid rgba(255,107,107,.4)}
+  .cc-badge.weak{background:rgba(255,183,77,.16);color:var(--warn);border:1px solid rgba(255,183,77,.4)}
+  .cc-badge.strong{background:rgba(61,220,151,.18);color:var(--accent);border:1px solid rgba(61,220,151,.4)}
+
+  /* Essay */
+  .essay-list{display:flex;flex-direction:column;gap:16px;margin-top:16px}
+  .essay-item{background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:14px;padding:18px}
+  .essay-item .qhead{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+  .essay-item .qnum{display:inline-block;flex-shrink:0;width:28px;height:28px;line-height:28px;text-align:center;border-radius:50%;background:var(--accent);color:#04241a;font-weight:800;font-size:13px}
+  .essay-item .qtext{font-size:14px;color:#dff0ee;line-height:1.65}
+  .essay-item textarea{width:100%;min-height:120px;background:rgba(0,0,0,.25);border:1.5px solid var(--line);border-radius:10px;color:var(--text);font-family:inherit;font-size:13.5px;padding:12px;line-height:1.65;resize:vertical;transition:.2s}
+  .essay-item textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,220,151,.15);background:rgba(0,0,0,.4)}
+  .essay-item .answer-bar{display:flex;justify-content:flex-end;align-items:center;margin-top:8px;gap:10px;flex-wrap:wrap}
+  .essay-item .saved{font-size:11px;color:var(--accent);font-weight:700;opacity:0;transition:opacity .3s}
+  .essay-item .saved.show{opacity:1}
+
+  /* Exploration */
+  .eks-scroll{max-height:560px;overflow-y:auto;padding-right:6px;margin-top:12px}
+  .eks-scroll::-webkit-scrollbar{width:8px}
+  .eks-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.03);border-radius:99px}
+  .eks-scroll::-webkit-scrollbar-thumb{background:rgba(61,220,151,.35);border-radius:99px}
+  .eks-cat{margin-bottom:18px}
+  .eks-cat:last-child{margin-bottom:0}
+  .eks-cat-label{
+    font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--accent2);
+    text-transform:uppercase;margin-bottom:9px;padding-bottom:6px;
+    border-bottom:1px dashed rgba(255,255,255,.14);
+    display:flex;align-items:center;gap:8px;
+  }
+  .eks-cat-label .cat-count{
+    background:rgba(255,255,255,.09);color:var(--muted);
+    font-size:10px;padding:2px 8px;border-radius:99px;letter-spacing:.3px;
+  }
+  .eks-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}
+  .eks-chips .chip{
+    justify-content:flex-start;gap:10px;padding:11px 13px;font-size:13px;
+    font-weight:700;cursor:pointer;letter-spacing:.2px;
+  }
+  .eks-chips .chip .ico{font-size:18px}
+  .eks-chips .chip.selected{border-color:var(--accent);background:rgba(61,220,151,.14);box-shadow:0 0 0 3px rgba(61,220,151,.22)}
+  .eks-chips .chip .done{margin-left:auto;font-size:10px;color:var(--accent);font-weight:800}
+
+  .status-banner{
+    margin-top:20px;padding:16px 20px;border-radius:14px;
+    background:linear-gradient(135deg,rgba(61,220,151,.15),rgba(79,195,247,.08));
+    border:1px solid rgba(61,220,151,.35);text-align:center;
+    font-size:15px;font-weight:700;color:var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="dot"></span><span>Micro-Virtual Lab</span></div>
+  <div class="bar"><i id="progressBar"></i></div>
+  <div class="tools">
+    <button class="ghost" id="btnJurnal">📓 Jurnal</button>
+    <button class="ghost on" id="btnSound">🔊 Suara</button>
+  </div>
+</header>
+
+<main id="stage">
+
+  <!-- 1. LOGIN -->
+  <section class="screen active" id="s1">
+    <div class="paper">
+      <h1>Jurnal Praktikum Digital</h1>
+      <p class="sub">MICRO-VIRTUAL LAB · KIMIA LINGKUNGAN</p>
+      <label for="inNama">Nama Lengkap Siswa</label>
+      <input id="inNama" type="text" placeholder="Tulis nama lengkapmu..." autocomplete="off" />
+      <label for="inKelas">Kelas / Kelompok</label>
+      <input id="inKelas" type="text" placeholder="Contoh: XII IPA 2 / Kelompok 3" autocomplete="off" />
+      <div class="err" id="loginErr">Mohon isi nama dan kelas terlebih dahulu.</div>
+      <button class="btn" id="btnLogin">Buka Jurnal Praktikum</button>
+    </div>
+  </section>
+
+  <!-- 2. BERANDA -->
+  <section class="screen" id="s2">
+    <div class="home-hero">
+      <p class="eyebrow">Micro-Virtual Lab</p>
+      <h1>Uji Daya Hantar Listrik Larutan</h1>
+      <p class="greet" id="greetText">Selamat datang, Peneliti Muda!</p>
+      <p class="muted">Elektrolit Kuat · Elektrolit Lemah · Non-Elektrolit — di perkebunan sawit &amp; hutan karet</p>
+      <div class="home-btns">
+        <button class="btn" id="toTeori1">▶ Mulai Ruang Teori</button>
+        <button class="btn ghost" id="btnPetunjuk">Petunjuk Penggunaan</button>
+        <button class="btn ghost" id="btnProfil">Profil Media</button>
+      </div>
+      <div class="home-deco">
+        <div class="sun"></div><div class="hill"></div><div class="hill b"></div><div class="river"></div>
+        <span class="label">Perkebunan Sawit · Hutan Karet · Sungai</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. TEORI 1 -->
+  <section class="screen" id="s3">
+    <p class="eyebrow">Ruang Teori · 1 dari 3</p>
+    <h2>Fenomena Makroskopis</h2>
+    <p>Perhatikan tiga gelas kimia pada papan hologram di area perkebunan. Ketuk setiap gelas untuk melihat klasifikasi larutannya.</p>
+
+    <div class="t1-grid" id="t1Grid"></div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Perhatikan perbedaan nyala lampu dan gelembung gas pada ketiga gelas. Mengapa daya hantar listriknya berbeda?">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Perhatikan perbedaan nyala lampu dan gelembung gas pada ketiga gelas. Mengapa daya hantar listriknya berbeda?”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="t1Next" disabled>Lanjut ke Penjelasan Sub-Mikroskopis →</button>
+      <button class="btn ghost" data-go="s2">← Beranda</button>
+    </div>
+  </section>
+
+  <!-- 4. TEORI 2 -->
+  <section class="screen" id="s4">
+    <p class="eyebrow">Ruang Teori · 2 dari 3</p>
+    <h2>Penjelasan Sub-Mikroskopis (Ionisasi)</h2>
+    <p>Geser <b>slider “Tingkat Ionisasi Zat”</b> untuk mengamati bagaimana molekul terurai menjadi ion-ion bermuatan yang bergerak mengalirkan elektron.</p>
+
+    <div class="card">
+      <canvas id="microTeori" width="860" height="380"></canvas>
+      <div class="slider-box">
+        <input type="range" id="ionSlider" min="0" max="100" value="0" />
+        <div class="slider-labels">
+          <span>Non-Elektrolit</span><span>Elektrolit Lemah</span><span>Elektrolit Kuat</span>
+        </div>
+        <div class="readout" id="ionReadout">Tingkat Ionisasi: 0% — Non-Elektrolit (α = 0)</div>
+      </div>
+    </div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Daya hantar listrik ditentukan oleh keberadaan ion bebas. Semakin banyak molekul yang terionisasi, semakin kuat hantaran listriknya.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Daya hantar listrik ditentukan oleh keberadaan ion bebas. Semakin banyak molekul yang terionisasi, semakin kuat hantaran listriknya.”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="t2Next" disabled>Lanjut ke Derajat Ionisasi →</button>
+      <button class="btn ghost" data-go="s3">← Kembali</button>
+    </div>
+  </section>
+
+  <!-- 5. TEORI 3 -->
+  <section class="screen" id="s5">
+    <p class="eyebrow">Ruang Teori · 3 dari 3</p>
+    <h2>Derajat Ionisasi (α) &amp; Reaksi Ionisasi</h2>
+
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+      <div class="card">
+        <h3 style="color:var(--accent)">Elektrolit Kuat</h3>
+        <p class="muted" style="margin:0">α = 1 · Ionisasi sempurna (→)</p>
+        <p style="font-family:'Consolas','Courier New',monospace;font-size:14px;margin:8px 0 0">(NH₄)₂SO₄ → 2NH₄⁺ + SO₄²⁻</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warn)">Elektrolit Lemah</h3>
+        <p class="muted" style="margin:0">0 &lt; α &lt; 1 · Ionisasi sebagian (⇌)</p>
+        <p style="font-family:'Consolas','Courier New',monospace;font-size:14px;margin:8px 0 0">HCOOH ⇌ H⁺ + HCOO⁻</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--danger)">Non-Elektrolit</h3>
+        <p class="muted" style="margin:0">α = 0 · Tidak terionisasi</p>
+        <p style="font-family:'Consolas','Courier New',monospace;font-size:14px;margin:8px 0 0">CO(NH₂)₂ <span style="opacity:.6">(tetap molekul)</span></p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">🧠 Mengapa Suatu Zat Dapat Terionisasi Sempurna, Sebagian, atau Tidak Sama Sekali?</h3>
+    <p>Ketika zat dilarutkan dalam air, molekul air (yang bersifat polar) akan menarik partikel zat. Apakah partikel itu <b>terurai menjadi ion</b> atau <b>tetap utuh sebagai molekul</b> bergantung pada <b>jenis ikatan</b> dan <b>kekuatan ikatan</b> dalam zat tersebut. Inilah sebabnya kita tidak perlu menghafal nama senyawa — cukup memahami sifat ikatannya.</p>
+
+    <div class="why-grid">
+      <div class="why-card">
+        <h4>✅ Terionisasi Sempurna (α = 1)</h4>
+        <p>Terjadi jika zat memiliki <b>ikatan ion</b> (seperti garam) atau <b>ikatan kovalen polar yang sangat lemah / mudah melepaskan ion</b> (seperti asam &amp; basa kuat). Tarikan molekul air sanggup memutus seluruh ikatan, sehingga <b>100% partikel</b> menjadi ion bebas.</p>
+        <p class="ex">NaCl → Na⁺ + Cl⁻ &nbsp;·&nbsp; HCl → H⁺ + Cl⁻</p>
+      </div>
+      <div class="why-card warn">
+        <h4>⚠️ Terionisasi Sebagian (0 &lt; α &lt; 1)</h4>
+        <p>Terjadi jika zat memiliki <b>ikatan kovalen polar yang cukup kuat</b>, sehingga hanya <b>sebagian kecil molekul</b> yang mampu melepaskan ion ketika bertemu air. Sisanya tetap utuh sebagai molekul. Reaksi berjalan dua arah (dapat kembali).</p>
+        <p class="ex">CH₃COOH ⇌ CH₃COO⁻ + H⁺ &nbsp;·&nbsp; NH₄OH ⇌ NH₄⁺ + OH⁻</p>
+      </div>
+      <div class="why-card danger">
+        <h4>❌ Tidak Terionisasi (α = 0)</h4>
+        <p>Terjadi jika zat memiliki <b>ikatan kovalen non-polar</b> atau <b>kovalen polar yang sangat kuat dan tidak memiliki gugus mudah lepas</b> (umumnya senyawa organik). Air hanya memisahkan molekulnya, tetapi <b>tidak sanggup memutus ikatannya</b> menjadi ion.</p>
+        <p class="ex">C₆H₁₂O₆ (glukosa) &nbsp;·&nbsp; C₂H₅OH (etanol) &nbsp;·&nbsp; CO(NH₂)₂ (urea)</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">🔬 Visualisasi Mikroskopis Tiga Jenis Larutan</h3>
+    <p class="muted">Perhatikan bagaimana partikel-partikel di dalam air berperilaku berbeda pada ketiga jenis larutan.</p>
+
+    <div class="micro-grid">
+      <div class="micro-card">
+        <h4 style="color:var(--accent)">Elektrolit Kuat</h4>
+        <canvas id="microKuat" width="320" height="180"></canvas>
+        <p>Semua partikel terurai menjadi ion (+/−) dan bergerak bebas. Banyak ion bebas → arus mudah mengalir.</p>
+      </div>
+      <div class="micro-card">
+        <h4 style="color:var(--warn)">Elektrolit Lemah</h4>
+        <canvas id="microLemah" width="320" height="180"></canvas>
+        <p>Sebagian kecil molekul terurai menjadi ion, sebagian besar tetap utuh sebagai molekul.</p>
+      </div>
+      <div class="micro-card">
+        <h4 style="color:var(--danger)">Non-Elektrolit</h4>
+        <canvas id="microNone" width="320" height="180"></canvas>
+        <p>Semua partikel tetap utuh sebagai molekul. Tidak ada ion bebas → arus tidak dapat mengalir.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">✍️ Cara Menuliskan Reaksi Ionisasi</h3>
+    <p>Menuliskan reaksi ionisasi tidak perlu dihafal. Ikuti langkah berikut:</p>
+    <ol class="steps">
+      <li>Tulis <b>rumus kimia zat</b> di ruas kiri, beri keterangan fasa (s) untuk padatan atau (aq) untuk larutan.</li>
+      <li>Uraikan menjadi <b>kation (ion positif)</b> dan <b>anion (ion negatif)</b> di ruas kanan.</li>
+      <li>Gunakan tanda <b>→</b> untuk ionisasi sempurna, tanda <b>⇌</b> (dua arah) untuk ionisasi sebagian, dan tulis <b>“tidak terionisasi”</b> (hanya berubah fasa) untuk non-elektrolit.</li>
+      <li>Setarakan jumlah atom dan total muatan di kedua ruas (jumlah muatan kiri = jumlah muatan kanan).</li>
+    </ol>
+
+    <div class="reaction-grid">
+      <div class="reaction-card strong">
+        <div class="rc-head"><span class="tag">SEMPURNA (→)</span><b style="color:var(--accent)">Elektrolit Kuat</b></div>
+        <code>NaCl(s) → Na⁺(aq) + Cl⁻(aq)</code>
+        <code>HCl(aq) → H⁺(aq) + Cl⁻(aq)</code>
+        <code>(NH₄)₂SO₄(s) → 2NH₄⁺(aq) + SO₄²⁻(aq)</code>
+        <p class="caption">Seluruh zat terurai. Panah satu arah menandakan reaksi berjalan tuntas.</p>
+      </div>
+      <div class="reaction-card weak">
+        <div class="rc-head"><span class="tag">SEBAGIAN (⇌)</span><b style="color:var(--warn)">Elektrolit Lemah</b></div>
+        <code>CH₃COOH(aq) ⇌ CH₃COO⁻(aq) + H⁺(aq)</code>
+        <code>HCOOH(aq) ⇌ HCOO⁻(aq) + H⁺(aq)</code>
+        <code>NH₄OH(aq) ⇌ NH₄⁺(aq) + OH⁻(aq)</code>
+        <p class="caption">Hanya sebagian terurai. Panah dua arah menandakan reaksi berjalan bolak-balik.</p>
+      </div>
+      <div class="reaction-card none">
+        <div class="rc-head"><span class="tag">TIDAK TERIONISASI</span><b style="color:var(--danger)">Non-Elektrolit</b></div>
+        <code>C₆H₁₂O₆(s) → C₆H₁₂O₆(aq)</code>
+        <code>CO(NH₂)₂(s) → CO(NH₂)₂(aq)</code>
+        <p class="caption">Zat hanya larut, tidak berubah menjadi ion. Rumus kimia tetap sama sebelum &amp; sesudah dilarutkan.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">🎯 Permainan Mencocokkan</h3>
+    <p class="muted">Tarik (atau ketuk lalu ketuk kotak tujuan) nilai α ke kategori larutan yang tepat.</p>
+
+    <div class="match-grid">
+      <div class="match-col">
+        <h3>Nilai Derajat Ionisasi</h3>
+        <div id="alphaChips" style="display:flex;flex-direction:column;gap:12px;align-items:stretch"></div>
+      </div>
+      <div class="match-col">
+        <h3>Kategori Larutan</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="slot" data-accept="1" style="min-height:70px">Kuat</div>
+          <div class="slot" data-accept="frac" style="min-height:70px">Lemah</div>
+          <div class="slot" data-accept="0" style="min-height:70px">Non-Elektrolit</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Derajat ionisasi melambangkan rasio molekul yang terurai menjadi ion. Zat dengan ikatan ion atau asam basa kuat terionisasi sempurna, asam basa lemah terionisasi sebagian, dan senyawa organik seperti gula tidak terionisasi.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Derajat ionisasi melambangkan rasio molekul yang terurai menjadi ion. Zat dengan ikatan ion atau asam/basa kuat terionisasi sempurna; asam/basa lemah terionisasi sebagian; senyawa organik seperti gula tidak terionisasi.”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="t3Next" disabled>Lanjut ke Misi Utama →</button>
+      <button class="btn ghost" data-go="s4">← Kembali</button>
+    </div>
+  </section>
+
+  <!-- 6. MISI -->
+  <section class="screen" id="s6">
+    <p class="eyebrow">Orientasi Masalah</p>
+    <h2>Gudang Penyimpanan Pupuk &amp; Bahan Kimia</h2>
+    <p class="muted">Suasana remang · tiga botol kaca tanpa label</p>
+
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;gap:22px;flex-wrap:wrap;justify-content:center;margin-bottom:18px">
+        <div class="bottle"><span class="bi">🍶</span><span class="bn">BOTOL A</span><span class="muted" style="font-size:11px">Tanpa label</span></div>
+        <div class="bottle"><span class="bi">🍶</span><span class="bn">BOTOL B</span><span class="muted" style="font-size:11px">Tanpa label</span></div>
+        <div class="bottle"><span class="bi">🍶</span><span class="bn">BOTOL C</span><span class="muted" style="font-size:11px">Tanpa label</span></div>
+      </div>
+
+      <h3>📜 Narasi Misi</h3>
+      <p id="misiText">Pak Tani memiliki 3 botol cairan: Larutan Pupuk ZA, Larutan Pupuk Urea, dan Cuka Getah (Asam Format). Labelnya terlepas! Bantu ia mengidentifikasi isi setiap botol sebelum digunakan.</p>
+
+      <div class="warn-box">
+        ⚠️ <b>Perhatian K3:</b> Cuka getah bersifat korosif dan berbahaya jika dicicipi! Gunakan uji daya hantar listrik.
+      </div>
+    </div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Gawat! Botol pupuk dan cuka getah Pak Tani tertukar. Mari kita identifikasi dengan aman menggunakan rangkaian alat uji listrik.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Gawat! Botol pupuk dan cuka getah Pak Tani tertukar. Mari kita identifikasi dengan aman menggunakan rangkaian alat uji listrik.”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="toRakit">🔧 Masuk ke Meja Praktikum</button>
+      <button class="btn ghost" data-go="s5">← Kembali</button>
+    </div>
+  </section>
+
+  <!-- 7. PERAKITAN -->
+  <section class="screen" id="s7">
+    <p class="eyebrow">Meja Praktikum · Somatic</p>
+    <h2>Perakitan Alat Uji Daya Hantar Listrik</h2>
+    <p>Susun komponen berikut menjadi rangkaian uji yang lengkap. Tarik komponen ke tempat yang tepat (atau ketuk komponen lalu ketuk slotnya).</p>
+
+    <div class="card">
+      <h3>🧰 Komponen di Atas Meja</h3>
+      <div class="tray" id="partTray"></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3>⚙️ Rangkaian Alat Uji</h3>
+      <div class="board" id="rakitBoard"></div>
+      <div id="rakitStatus" class="readout" style="margin-top:16px">0 / 4 komponen terpasang dengan benar</div>
+    </div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Rangkai alat uji listrikmu. Hubungkan baterai, lampu, dan elektroda menggunakan kabel.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Rangkai alat uji listrikmu. Hubungkan baterai, lampu, dan elektroda menggunakan kabel.”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="rakitNext" disabled>Mulai Uji Sampel →</button>
+      <button class="btn ghost" data-go="s6">← Kembali</button>
+    </div>
+  </section>
+
+  <!-- 8-10. UJI SAMPEL -->
+  <section class="screen" id="sSample"></section>
+
+  <!-- 11. EKSPLORASI -->
+  <section class="screen" id="s11">
+    <p class="eyebrow">Modul Uji Eksplorasi</p>
+    <h2>Uji Bebas: Bahan Alam, Senyawa Universal &amp; Minuman Sehari-hari</h2>
+    <p>Pilih sampel mana pun dari daftar berikut untuk diuji secara mandiri. Bilas elektroda bila perlu, lalu celupkan.</p>
+
+    <div class="bench">
+      <div class="bench-visual">
+        <div class="bottle" id="eksBottle"><span class="bi">🧫</span><span class="bn" id="eksBottleName">— Pilih Sampel —</span></div>
+        <div class="rig" id="eksRig">
+          <div class="lamp" id="eksLamp"></div>
+          <div class="beaker-wrap">
+            <div class="rods"><div class="rod"></div><div class="rod"></div></div>
+            <div class="beaker"><div class="liquid"><div class="bubbles" id="eksBubbles"></div></div></div>
+          </div>
+          <div class="beaker-tag">Alat Uji Daya Hantar Listrik</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+            <h3 style="margin:0">🔬 Pilih Sampel Uji</h3>
+            <span class="pill" id="eksProgress">0 / 0 diuji</span>
+          </div>
+          <div class="eks-scroll" id="eksList"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+            <button class="btn blue" id="eksRinse" disabled>💧 Bilas Elektroda</button>
+            <button class="btn" id="eksDip" disabled>⚡ Celupkan Elektroda</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px" id="eksResult">
+          <p class="muted" style="margin:0">Hasil pengamatan akan muncul di sini.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="narrator">
+      <button class="spk" data-speak="Hebat! Sekarang coba uji bahan-bahan yang sering kamu temui sehari-hari. Bandingkan hasilnya dengan teori yang telah kamu pelajari.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Hebat! Sekarang coba uji bahan-bahan yang sering kamu temui sehari-hari. Bandingkan hasilnya dengan teori yang telah kamu pelajari.”</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="eksNext">Lanjut ke Analisis &amp; Pelabelan →</button>
+      <button class="btn ghost" data-go="sSample">← Kembali ke Sampel</button>
+    </div>
+  </section>
+
+  <!-- 12. ANALISIS & PELABELAN + INFO SENYAWA -->
+  <section class="screen" id="s12">
+    <p class="eyebrow">Analisis Akhir</p>
+    <h2>Labeli Botol Pak Tani</h2>
+    <p>Tarik stiker label ke botol yang sesuai berdasarkan data hasil praktikummu.</p>
+
+    <div class="label-row" id="labelRow"></div>
+
+    <div class="card">
+      <h3>🏷️ Stiker Label</h3>
+      <div class="sticker-tray" id="stickerTray"></div>
+    </div>
+
+    <div class="narrator" id="finalNarrator" style="display:none">
+      <button class="spk" data-speak="Luar biasa! Kamu telah berhasil membantu Pak Tani mengidentifikasi seluruh cairan dengan tepat.">🔈</button>
+      <div>
+        <div class="who">Narator</div>
+        <p>“Luar biasa <b id="narasiNama">Peneliti Muda</b>! Kamu telah berhasil membantu Pak Tani mengidentifikasi seluruh cairan dengan tepat.”</p>
+      </div>
+    </div>
+
+    <div class="card" id="compoundInfo" style="display:none;margin-top:20px">
+      <h3>🧪 Senyawa Paling Akhir yang Terkandung dalam Setiap Botol</h3>
+      <p class="muted">Setelah seluruh pengujian dan pelabelan selesai, berikut adalah identifikasi senyawa yang sebenarnya ada di dalam tiap botol.</p>
+      <div class="compound-grid">
+        <div class="compound-card">
+          <span class="cc-badge none">Non-Elektrolit</span>
+          <div style="font-size:30px">🍶</div>
+          <h4>Botol A</h4>
+          <p class="cc-name">Pupuk Urea</p>
+          <p class="cc-formula">CO(NH₂)₂</p>
+          <p class="cc-desc">Senyawa organik kovalen. Dalam air tetap utuh sebagai molekul: <code style="font-family:monospace;font-size:11px;color:var(--accent2)">CO(NH₂)₂(s) → CO(NH₂)₂(aq)</code>. Karena tidak menghasilkan ion bebas, larutan ini tidak menghantarkan listrik (α = 0).</p>
+        </div>
+        <div class="compound-card">
+          <span class="cc-badge weak">Elektrolit Lemah</span>
+          <div style="font-size:30px">🍶</div>
+          <h4>Botol B</h4>
+          <p class="cc-name">Cuka Getah</p>
+          <p class="cc-formula">HCOOH</p>
+          <p class="cc-desc">Asam format (asam karboksilat lemah). Hanya sebagian kecil molekul melepaskan H⁺: <code style="font-family:monospace;font-size:11px;color:var(--accent2)">HCOOH(aq) ⇌ H⁺(aq) + HCOO⁻(aq)</code>. Sedikitnya ion bebas membuat lampu menyala redup (0 &lt; α &lt; 1).</p>
+        </div>
+        <div class="compound-card">
+          <span class="cc-badge strong">Elektrolit Kuat</span>
+          <div style="font-size:30px">🍶</div>
+          <h4>Botol C</h4>
+          <p class="cc-name">Pupuk ZA</p>
+          <p class="cc-formula">(NH₄)₂SO₄</p>
+          <p class="cc-desc">Amonium sulfat — garam ionik. Terionisasi sempurna dalam air: <code style="font-family:monospace;font-size:11px;color:var(--accent2)">(NH₄)₂SO₄(s) → 2NH₄⁺(aq) + SO₄²⁻(aq)</code>. Banyak ion bebas → lampu menyala terang (α = 1).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="reportCard" style="display:none;margin-top:20px">
+      <h3>📄 Laporan Praktikum Digital</h3>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:12px">
+        <div class="result-row"><span>Nama Siswa</span><b id="repNama">-</b></div>
+        <div class="result-row"><span>Kelas / Kelompok</span><b id="repKelas">-</b></div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>No</th><th>Sampel</th><th>Zat</th><th>Ciri Pengamatan</th><th>Jenis</th><th>α</th></tr>
+          </thead>
+          <tbody id="repBody"></tbody>
+        </table>
+      </div>
+      <div class="readout" style="margin-top:18px" id="repScore">Nilai Evaluasi: 0</div>
+      <div class="actions">
+        <button class="btn warm" id="btnDownload">⬇ Unduh Laporan (PDF)</button>
+        <button class="btn ghost" data-go="s2">🏠 Beranda</button>
+      </div>
+    </div>
+
+    <div class="actions" id="s12Nav">
+      <button class="btn ghost" data-go="s11">← Kembali</button>
+      <button class="btn" id="toRefleksi" style="display:none">Lanjut ke Refleksi &amp; Kesimpulan →</button>
+    </div>
+  </section>
+
+  <!-- 13. REFLEKSI -->
+  <section class="screen" id="sRefleksi">
+    <p class="eyebrow">Refleksi Praktikum</p>
+    <h2>Pertanyaan Esai &amp; Kesimpulan</h2>
+    <p>Jawab pertanyaan-pertanyaan berikut berdasarkan pengalaman praktikummu. Jawabanmu akan tersimpan otomatis. Tidak ada jawaban benar/salah mutlak — yang penting alasanmu logis dan didukung data hasil pengamatan.</p>
+
+    <div class="essay-list" id="refleksiList"></div>
+
+    <div class="actions">
+      <button class="btn ghost" data-go="s12">← Kembali</button>
+      <button class="btn" id="toEval">Lanjut ke Evaluasi Esai Universal →</button>
+    </div>
+  </section>
+
+  <!-- 14. EVALUASI ESAI UNIVERSAL -->
+  <section class="screen" id="sEval">
+    <p class="eyebrow">Evaluasi Akhir</p>
+    <h2>Soal Esai Universal</h2>
+    <p>Soal-soal berikut menguji pemahaman konsep larutan elektrolit secara umum — tidak terikat pada kegiatan praktikum yang baru saja kamu lakukan. Tulis jawabanmu pada kolom yang tersedia.</p>
+
+    <div class="essay-list" id="evalList"></div>
+
+    <div class="status-banner" id="evalStatus">
+      💾 Jawaban tersimpan otomatis di perangkatmu
+    </div>
+
+    <div class="actions">
+      <button class="btn ghost" data-go="sRefleksi">← Kembali</button>
+      <button class="btn warm" id="evalDownload">⬇ Unduh Jawaban (PDF)</button>
+      <button class="btn ghost" data-go="s2">🏠 Beranda</button>
+    </div>
+  </section>
+
+</main>
+
+<aside id="journal">
+  <header>
+    <h3 style="margin:0;color:var(--accent)">📓 Jurnal Praktikum</h3>
+    <button class="ghost" id="closeJournal">✕</button>
+  </header>
+  <div class="body" id="journalBody">
+    <p class="muted">Belum ada catatan. Lakukan pengujian sampel untuk mengisi jurnal.</p>
+  </div>
+</aside>
+
+<div id="modal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Judul</h3>
+    <div id="modalBody"></div>
+    <div class="close-row">
+      <button class="btn ghost" id="modalClose">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   AUDIO ENGINE
+   ============================================================ */
+let actx = null, muted = false, musicTimer = null;
+
+function AC(){
+  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if(actx.state === 'suspended') actx.resume();
+  return actx;
+}
+function beep(freq, dur, type='sine', vol=0.12, when=0, slideTo=null){
+  if(muted) return;
+  try{
+    const c = AC(), t = c.currentTime + when;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1,slideTo), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t + dur + 0.06);
+  }catch(e){}
+}
+function noiseBurst(dur=0.3, vol=0.08, freq=900, q=1.1, when=0){
+  if(muted) return;
+  try{
+    const c = AC(), t = c.currentTime + when;
+    const len = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (1 - i/len);
+    const s = c.createBufferSource(); s.buffer = buf;
+    const f = c.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq; f.Q.value=q;
+    const g = c.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(c.destination);
+    s.start(t);
+  }catch(e){}
+}
+const sfx = {
+  click(){ beep(1200, 0.05, 'square', 0.05); },
+  tap(){ beep(760, 0.09, 'triangle', 0.09); },
+  paper(){ noiseBurst(0.35, 0.09, 2600, 0.8); },
+  water(){ noiseBurst(0.45, 0.07, 1500, 0.9); noiseBurst(0.3, 0.05, 700, 1.4, 0.1); },
+  pop(){ beep(420, 0.14, 'sine', 0.11, 0, 980); },
+  buzz(){ beep(150, 0.28, 'sawtooth', 0.08, 0, 90); },
+  bell(){ beep(1046, 0.35, 'sine', 0.13); beep(1568, 0.45, 'sine', 0.10, 0.09); },
+  hum(){ beep(120, 1.0, 'sawtooth', 0.025); },
+  fanfare(){ [523,659,784,1046,1318].forEach((f,i)=>beep(f, 0.42, 'triangle', 0.11, i*0.13)); beep(1568, 0.9, 'sine', 0.09, 0.65); },
+  correct(){ beep(880,0.12,'sine',0.11); beep(1320,0.22,'sine',0.10,0.1); }
+};
+const CHORDS = [[220,277,330],[196,247,294],[174,220,261],[196,247,330]];
+let chordIdx = 0;
+function startMusic(){
+  if(musicTimer || muted) return;
+  const play = () => {
+    const ch = CHORDS[chordIdx++ % CHORDS.length];
+    ch.forEach((f,i)=> beep(f*2, 2.4, 'sine', 0.022, i*0.06));
+  };
+  play();
+  musicTimer = setInterval(play, 2700);
+}
+function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer = null; } }
+
+function speak(text){
+  if(muted) return;
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'id-ID'; u.rate = 0.95; u.pitch = 1.0;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  nama: '', kelas: '',
+  t1: { opened: new Set() },
+  t2: { done: false },
+  t3: { score: 0, done: false },
+  rakit: { score: 0, done: false },
+  samples: {},
+  eksplor: {},
+  label: { score: 0, done: false },
+  journal: []
+};
+let electrodeDirty = false;
+let picked = null;
+let activeMicro = null;
+let teoriMicros = { kuat:null, lemah:null, none:null };
+
+const SCREEN_ORDER = ['s1','s2','s3','s4','s5','s6','s7','sSample','s11','s12','sRefleksi','sEval'];
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+function goTo(id){
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+  updateProgress(id);
+  onEnter(id);
+}
+function updateProgress(id){
+  const i = SCREEN_ORDER.indexOf(id);
+  const pct = i < 0 ? 0 : ((i+1) / SCREEN_ORDER.length) * 100;
+  $('#progressBar').style.width = pct + '%';
+}
+function onEnter(id){
+  if(activeMicro && id !== 's4'){ activeMicro.destroy(); activeMicro = null; }
+  if(id === 's4') initTeori2Canvas();
+  if(id === 's5') initTeori3Micros();
+  if(id === 'sSample') renderSample(currentSampleKey);
+  if(id === 's11') renderEksplor();
+  if(id === 'sRefleksi') renderEssay('refleksi');
+  if(id === 'sEval') renderEssay('eval');
+}
+
+let toastTimer = null;
+function toast(msg, kind=''){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.className = 'toast ' + kind, 2400);
+}
+function bubbleHTML(count, spread=70){
+  let s = '';
+  for(let i=0;i<count;i++){
+    const left = 12 + Math.random()*spread;
+    const delay = (Math.random()*1.8).toFixed(2);
+    const dur = (1.1 + Math.random()*1.3).toFixed(2);
+    const size = (4 + Math.random()*6).toFixed(1);
+    s += `<span class="bubble" style="left:${left}%;width:${size}px;height:${size}px;animation-delay:${delay}s;animation-duration:${dur}s"></span>`;
+  }
+  return s;
+}
+
+/* ============================================================
+   DRAG & DROP
+   ============================================================ */
+function makePickable(el){
+  el.setAttribute('draggable','true');
+  el.addEventListener('dragstart', e => {
+    picked = el; el.classList.add('picked');
+    try{ e.dataTransfer.setData('text/plain', el.dataset.id || 'x'); }catch(_){}
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => el.classList.remove('picked'));
+  el.addEventListener('click', () => {
+    if(picked === el){ picked = null; el.classList.remove('picked'); return; }
+    $$('.picked').forEach(p => p.classList.remove('picked'));
+    picked = el; el.classList.add('picked'); sfx.tap();
+  });
+}
+function makeDropZone(el, cb){
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('over');
+    if(picked) cb(picked, el);
+  });
+  el.addEventListener('click', () => { if(picked) cb(picked, el); });
+}
+function clearPick(){ picked = null; $$('.picked').forEach(p => p.classList.remove('picked')); }
+
+/* ============================================================
+   MICRO VIEW
+   ============================================================ */
+class MicroView {
+  constructor(canvas, cfg = {}){
+    this.cv = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.W = canvas.width; this.H = canvas.height;
+    this.cfg = Object.assign({ units: 12, ionized: 0 }, cfg);
+    this.running = true;
+    this.build();
+    this._loop = this._loop.bind(this);
+    this.raf = requestAnimationFrame(this._loop);
+  }
+  build(){
+    const { units, ionized } = this.cfg;
+    this.atoms = []; this.units = [];
+    const cols = Math.max(1, Math.ceil(Math.sqrt(units)));
+    const rows = Math.max(1, Math.ceil(units / cols));
+    const padX = Math.max(30, this.W * 0.14);
+    const padY = Math.max(26, this.H * 0.20);
+    for(let i=0;i<units;i++){
+      const gx = i % cols, gy = Math.floor(i / cols);
+      const x = padX + (cols>1 ? gx * ((this.W - 2*padX)/(cols-1)) : (this.W/2 - padX)) + (Math.random()-0.5)*16;
+      const y = padY + (rows>1 ? gy * ((this.H - 2*padY)/(rows-1)) : (this.H/2 - padY)) + (Math.random()-0.5)*16;
+      const a = this.atoms.push({ x, y, vx:(Math.random()-0.5)*1.4, vy:(Math.random()-0.5)*1.4, charge:0 }) - 1;
+      const b = this.atoms.push({ x: x+18, y: y+8, vx:(Math.random()-0.5)*1.4, vy:(Math.random()-0.5)*1.4, charge:0 }) - 1;
+      this.units.push({ a, b, ionized:false });
+    }
+    this.setIonized(ionized);
+  }
+  setIonized(n){
+    n = Math.max(0, Math.min(this.units.length, Math.round(n)));
+    this.units.forEach((u, i) => {
+      if(i < n && !u.ionized){
+        u.ionized = true;
+        const A = this.atoms[u.a], B = this.atoms[u.b];
+        A.charge = 1; B.charge = -1;
+        A.vx -= 1.6 + Math.random(); A.vy -= 0.8 + Math.random()*0.8;
+        B.vx += 1.6 + Math.random(); B.vy += 0.8 + Math.random()*0.8;
+      } else if(i >= n && u.ionized){
+        u.ionized = false;
+        const A = this.atoms[u.a], B = this.atoms[u.b];
+        A.charge = 0; B.charge = 0;
+      }
+    });
+    this.ionizedCount = n;
+  }
+  _loop(){ if(!this.running) return; this.update(); this.draw(); this.raf = requestAnimationFrame(this._loop); }
+  update(){
+    const A = this.atoms, U = this.units;
+    for(const u of U){
+      if(u.ionized) continue;
+      const a = A[u.a], b = A[u.b];
+      let dx = b.x - a.x, dy = b.y - a.y;
+      let d = Math.hypot(dx, dy) || 0.001;
+      const rest = 20, k = 0.045;
+      const f = (d - rest) * k;
+      const fx = (dx/d) * f, fy = (dy/d) * f;
+      a.vx += fx; a.vy += fy; b.vx -= fx; b.vy -= fy;
+      a.vx *= 0.985; a.vy *= 0.985; b.vx *= 0.985; b.vy *= 0.985;
+    }
+    for(const p of A){
+      p.x += p.vx; p.y += p.vy;
+      p.vx += (Math.random()-0.5)*0.06; p.vy += (Math.random()-0.5)*0.06;
+      const sp = Math.hypot(p.vx, p.vy);
+      const maxSp = p.charge ? 2.6 : 1.5;
+      if(sp > maxSp){ p.vx = p.vx/sp*maxSp; p.vy = p.vy/sp*maxSp; }
+      const r = 7;
+      if(p.x < r){ p.x = r; p.vx = Math.abs(p.vx)*0.8; }
+      if(p.x > this.W - r){ p.x = this.W - r; p.vx = -Math.abs(p.vx)*0.8; }
+      if(p.y < r){ p.y = r; p.vy = Math.abs(p.vy)*0.8; }
+      if(p.y > this.H - r){ p.y = this.H - r; p.vy = -Math.abs(p.vy)*0.8; }
+    }
+  }
+  draw(){
+    const c = this.ctx, W = this.W, H = this.H;
+    const g = c.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#07202a'); g.addColorStop(1,'#04141b');
+    c.fillStyle = g; c.fillRect(0,0,W,H);
+    c.fillStyle = 'rgba(120,200,255,.07)';
+    for(let i=0;i<40;i++){
+      const x = ((i*137.5) % W), y = ((i*89.3 + performance.now()*0.01) % H);
+      c.beginPath(); c.arc(x, y, 2.5, 0, Math.PI*2); c.fill();
+    }
+    const A = this.atoms;
+    c.lineWidth = 3.5; c.strokeStyle = 'rgba(127,212,255,.65)';
+    for(const u of this.units){
+      if(u.ionized) continue;
+      const a = A[u.a], b = A[u.b];
+      c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    }
+    for(const p of A){
+      let fill = '#4fc3f7', glow = 'rgba(79,195,247,.5)';
+      if(p.charge > 0){ fill = '#ff8a80'; glow = 'rgba(255,138,128,.65)'; }
+      if(p.charge < 0){ fill = '#82b1ff'; glow = 'rgba(130,177,255,.65)'; }
+      c.shadowColor = glow; c.shadowBlur = 10;
+      c.beginPath(); c.arc(p.x, p.y, 7, 0, Math.PI*2);
+      c.fillStyle = fill; c.fill();
+      c.shadowBlur = 0;
+      c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 1.5; c.stroke();
+      if(p.charge !== 0){
+        c.fillStyle = '#0b1b20';
+        c.font = 'bold 11px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillText(p.charge > 0 ? '+' : '−', p.x, p.y + 0.5);
+      }
+    }
+  }
+  destroy(){ this.running = false; if(this.raf) cancelAnimationFrame(this.raf); }
+}
+
+/* ============================================================
+   SCENE 1 — LOGIN
+   ============================================================ */
+$('#btnLogin').addEventListener('click', doLogin);
+$('#inNama').addEventListener('keydown', e => { if(e.key === 'Enter') $('#inKelas').focus(); });
+$('#inKelas').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+
+function doLogin(){
+  const nama  = $('#inNama').value.trim();
+  const kelas = $('#inKelas').value.trim();
+  if(!nama || !kelas){ $('#loginErr').classList.add('show'); sfx.buzz(); return; }
+  $('#loginErr').classList.remove('show');
+  state.nama = nama; state.kelas = kelas;
+  sfx.paper(); setTimeout(()=>sfx.click(), 300);
+  $('#greetText').textContent = `Selamat datang, Peneliti Muda ${nama}!`;
+  $('#misiText').innerHTML = `<b>${escapeHtml(nama)}</b>, Pak Tani memiliki 3 botol cairan: Larutan Pupuk ZA, Larutan Pupuk Urea, dan Cuka Getah (Asam Format). Labelnya terlepas! Bantu ia mengidentifikasi isi setiap botol sebelum digunakan.`;
+  $('#narasiNama').textContent = nama;
+  $('#topbar').classList.add('show');
+  AC(); startMusic();
+  goTo('s2');
+  setTimeout(()=> speak(`Halo ${nama}! Selamat datang di Laboratorium Virtual Kimia Lingkungan.`), 700);
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ============================================================
+   SCENE 2 — BERANDA
+   ============================================================ */
+$('#toTeori1').addEventListener('click', ()=>{ sfx.click(); goTo('s3'); });
+$('#btnPetunjuk').addEventListener('click', ()=>{
+  sfx.tap();
+  openModal('📖 Petunjuk Penggunaan', `
+    <ul class="hint-list">
+      <li>Isi nama &amp; kelas pada halaman login, lalu buka jurnal praktikum.</li>
+      <li>Pelajari 3 Ruang Teori: fenomena makroskopis, sub-mikroskopis, dan derajat ionisasi (α) beserta reaksi ionisasi.</li>
+      <li>Rakit alat uji listrik pada meja praktikum (tarik komponen ke slot).</li>
+      <li>Uji Botol A, B, dan C. <b>Bilas elektroda dengan aquades</b> setiap kali berganti sampel.</li>
+      <li>Amati nyala lampu &amp; gelembung gas, lalu buka tampilan sub-mikroskopis.</li>
+      <li>Catat hasil ke jurnal, lanjut ke modul eksplorasi — uji bebas 70 sampel (bahan alam, larutan kimia universal, minuman sehari-hari).</li>
+      <li>Labeli botol, pelajari senyawa paling akhir tiap botol, unduh laporan.</li>
+      <li>Kerjakan soal refleksi &amp; kesimpulan, lalu soal evaluasi esai universal.</li>
+    </ul>`);
+});
+$('#btnProfil').addEventListener('click', ()=>{
+  sfx.tap();
+  openModal('ℹ️ Profil Media', `
+    <p><b>Micro-Virtual Lab: Uji Daya Hantar Listrik Larutan</b></p>
+    <p class="muted">Media pembelajaran kimia SMA berbasis web untuk materi larutan elektrolit dan non-elektrolit.</p>
+    <ul class="hint-list">
+      <li>Mengintegrasikan tiga level representasi kimia: makroskopis, sub-mikroskopis, dan simbolik.</li>
+      <li>Kontekstual dengan lingkungan pedesaan: perkebunan sawit, hutan karet, dan sungai.</li>
+      <li>Modul eksplorasi dengan 70 sampel dari bahan alam, larutan kimia universal, hingga minuman sehari-hari.</li>
+      <li>Mendukung pembelajaran somatic, intellectual, visual, dan auditory.</li>
+      <li>Dilengkapi jurnal digital, laporan praktikum, soal refleksi, dan evaluasi esai universal.</li>
+    </ul>
+    <p class="muted" style="margin-top:10px">Dibangun dengan HTML, CSS, dan JavaScript murni.</p>`);
+});
+
+/* ============================================================
+   SCENE 3 — TEORI 1
+   ============================================================ */
+const T1_DATA = [
+  { id:'kuat', label:'Elektrolit Kuat', lamp:'bright', bub:14,
+    desc:'Lampu menyala <b>TERANG</b> · gelembung gas <b>BANYAK</b>',
+    contoh:'Contoh: HCl, NaOH, NaCl, H₂SO₄, KOH, garam dapur, pupuk ZA' },
+  { id:'lemah', label:'Elektrolit Lemah', lamp:'dim', bub:4,
+    desc:'Lampu menyala <b>REDUP / BERKEDIP</b> · gelembung gas <b>SEDIKIT</b>',
+    contoh:'Contoh: CH₃COOH, HCOOH, NH₄OH, H₂CO₃, cuka getah, air hujan' },
+  { id:'non', label:'Non-Elektrolit', lamp:'off', bub:0,
+    desc:'Lampu <b>MATI</b> · <b>TIDAK ADA</b> gelembung gas',
+    contoh:'Contoh: C₆H₁₂O₆ (glukosa), C₂H₅OH (etanol), CO(NH₂)₂ (urea), larutan gula' }
+];
+
+function renderTeori1(){
+  const grid = $('#t1Grid');
+  grid.innerHTML = T1_DATA.map(d => `
+    <div class="t1-card" data-id="${d.id}">
+      <div class="rig" style="pointer-events:none">
+        <div class="lamp ${d.lamp}"></div>
+        <div class="beaker-wrap" style="padding-top:96px">
+          <div class="rods"><div class="rod"></div><div class="rod"></div></div>
+          <div class="beaker" style="width:104px;height:124px">
+            <div class="liquid"><div class="bubbles">${bubbleHTML(d.bub, 62)}</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="t1-reveal">
+        <div class="t1-name">${d.label}</div>
+        <div class="t1-desc">${d.desc}</div>
+        <div class="t1-hint">${d.contoh}</div>
+      </div>
+      <div class="t1-hint">👆 Ketuk gelas kimia</div>
+    </div>`).join('');
+
+  $$('.t1-card').forEach(card => {
+    card.addEventListener('click', () => {
+      if(card.classList.contains('opened')) return;
+      card.classList.add('opened');
+      card.querySelector('.t1-hint:last-child').textContent = '✓ Teridentifikasi';
+      sfx.tap(); setTimeout(()=>sfx.pop(), 120);
+      state.t1.opened.add(card.dataset.id);
+      if(state.t1.opened.size === 3){
+        $('#t1Next').disabled = false;
+        setTimeout(()=>{ sfx.bell(); toast('Semua gelas teridentifikasi!', 'ok'); }, 350);
+      }
+    });
+  });
+}
+$('#t1Next').addEventListener('click', ()=>{ sfx.click(); goTo('s4'); });
+
+/* ============================================================
+   SCENE 4 — TEORI 2
+   ============================================================ */
+function initTeori2Canvas(){
+  if(activeMicro) activeMicro.destroy();
+  const cv = $('#microTeori');
+  activeMicro = new MicroView(cv, { units: 12, ionized: 0 });
+  const slider = $('#ionSlider');
+  slider.value = 0;
+  updateIonReadout(0);
+}
+function updateIonReadout(v){
+  const n = Math.round(v/100 * 12);
+  if(activeMicro) activeMicro.setIonized(n);
+  let txt;
+  if(v === 0) txt = 'Tingkat Ionisasi: 0% — Non-Elektrolit (α = 0)';
+  else if(v >= 100) txt = 'Tingkat Ionisasi: 100% — Elektrolit Kuat (α = 1)';
+  else txt = `Tingkat Ionisasi: ${v}% — Elektrolit Lemah (0 < α < 1)`;
+  $('#ionReadout').textContent = txt;
+  if(v >= 100 && !state.t2.done){
+    state.t2.done = true; $('#t2Next').disabled = false;
+    sfx.hum();
+    setTimeout(()=>{ sfx.bell(); toast('Ionisasi sempurna tercapai! α = 1', 'ok'); }, 200);
+  }
+}
+$('#ionSlider').addEventListener('input', e => {
+  const v = +e.target.value;
+  updateIonReadout(v);
+  if(v > 0 && v < 100 && Math.random() < 0.35) sfx.pop();
+});
+$('#t2Next').addEventListener('click', ()=>{ sfx.click(); goTo('s5'); });
+
+/* ============================================================
+   SCENE 5 — TEORI 3
+   ============================================================ */
+const ALPHA_CHIPS = [
+  { id:'1', text:'α = 1' },
+  { id:'frac', text:'0 < α < 1' },
+  { id:'0', text:'α = 0' }
+];
+
+function initTeori3Micros(){
+  Object.keys(teoriMicros).forEach(k => { if(teoriMicros[k]){ teoriMicros[k].destroy(); teoriMicros[k]=null; } });
+  const c1 = $('#microKuat'); if(c1) teoriMicros.kuat = new MicroView(c1, { units: 6, ionized: 6 });
+  const c2 = $('#microLemah'); if(c2) teoriMicros.lemah = new MicroView(c2, { units: 6, ionized: 1 });
+  const c3 = $('#microNone'); if(c3) teoriMicros.none = new MicroView(c3, { units: 6, ionized: 0 });
+}
+
+function renderTeori3(){
+  const wrap = $('#alphaChips');
+  wrap.innerHTML = ALPHA_CHIPS.map(c => `<div class="chip" data-id="${c.id}" style="justify-content:center">${c.text}</div>`).join('');
+  $$('#alphaChips .chip').forEach(makePickable);
+
+  $$('#s5 .slot').forEach(slot => {
+    makeDropZone(slot, (chip, zone) => {
+      if(zone.classList.contains('filled')) return;
+      const correct = chip.dataset.id === zone.dataset.accept;
+      if(correct){
+        zone.classList.add('filled');
+        zone.textContent = chip.textContent + '  ✓';
+        chip.style.display = 'none';
+        state.t3.score++; sfx.bell(); clearPick();
+        if(state.t3.score === 3){
+          state.t3.done = true; $('#t3Next').disabled = false;
+          setTimeout(()=>{ sfx.fanfare(); toast('Cocok! Derajat ionisasi dipahami dengan baik.', 'ok'); }, 250);
+        }
+      } else {
+        zone.classList.add('wrong'); sfx.buzz();
+        toast('Belum tepat. Perhatikan kembali hubungan α dengan jenis larutan.', 'bad');
+        clearPick();
+        setTimeout(()=> zone.classList.remove('wrong'), 500);
+      }
+    });
+  });
+}
+$('#t3Next').addEventListener('click', ()=>{ sfx.click(); goTo('s6'); });
+
+/* ============================================================
+   SCENE 6 — MISI
+   ============================================================ */
+$('#toRakit').addEventListener('click', ()=>{ sfx.click(); goTo('s7'); });
+
+/* ============================================================
+   SCENE 7 — PERAKITAN
+   ============================================================ */
+const PARTS = [
+  { id:'baterai', ico:'🔋', nm:'Baterai D-Cell (2×)' },
+  { id:'lampu', ico:'💡', nm:'Lampu Bohlam 1.5V' },
+  { id:'elektrodaA', ico:'⚫', nm:'Batang Karbon A' },
+  { id:'elektrodaB', ico:'⚫', nm:'Batang Karbon B' },
+  { id:'aquades', ico:'🥛', nm:'Gelas Aquades' }
+];
+const SLOTS = [
+  { id:'sumber', accept:'baterai', ico:'🔋', nm:'Sumber Daya' },
+  { id:'indikator', accept:'lampu', ico:'💡', nm:'Indikator' },
+  { id:'kiri', accept:'elektrodaA', ico:'⚫', nm:'Elektroda Kiri' },
+  { id:'kanan', accept:'elektrodaB', ico:'⚫', nm:'Elektroda Kanan' }
+];
+
+function renderRakit(){
+  $('#partTray').innerHTML = PARTS.map(p =>
+    `<div class="part" data-id="${p.id}"><span class="ico">${p.ico}</span><span class="nm">${p.nm}</span></div>`
+  ).join('');
+  $('#rakitBoard').innerHTML = SLOTS.map(s =>
+    `<div class="slot" data-accept="${s.accept}" data-slot="${s.id}">
+       <span class="ico" style="opacity:.35">${s.ico}</span>
+       <span class="nm" style="color:var(--muted)">${s.nm}</span>
+     </div>`
+  ).join('');
+
+  $$('#partTray .part').forEach(makePickable);
+
+  $$('#rakitBoard .slot').forEach(slot => {
+    makeDropZone(slot, (part, zone) => {
+      if(zone.classList.contains('filled')) return;
+      if(part.dataset.id === zone.dataset.accept){
+        zone.classList.add('filled');
+        zone.innerHTML = `<span class="ico">${part.querySelector('.ico').textContent}</span>
+                          <span class="nm">${part.querySelector('.nm').textContent} ✓</span>`;
+        part.classList.add('used');
+        state.rakit.score++;
+        sfx.click(); setTimeout(()=>sfx.correct(), 90);
+        clearPick();
+        $('#rakitStatus').textContent = `${state.rakit.score} / 4 komponen terpasang dengan benar`;
+        if(state.rakit.score === 4){
+          state.rakit.done = true; $('#rakitNext').disabled = false;
+          $('#rakitStatus').textContent = '✅ Rangkaian lengkap! Siap digunakan.';
+          $('#rakitStatus').style.color = 'var(--accent)';
+          setTimeout(()=>{ sfx.fanfare(); toast('Rangkaian alat uji siap!', 'ok'); }, 250);
+        }
+      } else {
+        zone.classList.add('wrong'); sfx.buzz();
+        if(part.dataset.id === 'aquades') toast('Gelas aquades hanya untuk membilas elektroda, bukan bagian rangkaian.', 'bad');
+        else toast('Komponen itu bukan untuk bagian ini.', 'bad');
+        clearPick();
+        setTimeout(()=> zone.classList.remove('wrong'), 520);
+      }
+    });
+  });
+}
+$('#rakitNext').addEventListener('click', ()=>{
+  sfx.click();
+  electrodeDirty = false;
+  currentSampleKey = 'A';
+  goTo('sSample');
+});
+
+/* ============================================================
+   SCENE 8-10 — UJI SAMPEL
+   ============================================================ */
+const SAMPLES = {
+  A: {
+    key:'A', bottle:'Botol A', zat:'Larutan Pupuk Urea', rumus:'CO(NH₂)₂',
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0',
+    lamp:'off', bubbles:0,
+    ciri:'Lampu <b>MATI</b> · <b>TIDAK ADA</b> gelembung gas',
+    narasi:'Lampu tidak menyala dan tidak ada gelembung gas. Molekul zat ini tetap utuh di dalam air.',
+    mikro:{ units:10, ionized:0 },
+    mikroDesc:'Molekul urea CO(NH₂)₂ tetap utuh terlarut di antara molekul air — <b>tidak terpecah menjadi ion</b>. Karena tidak ada ion bebas, larutan ini tidak dapat menghantarkan listrik.',
+    journal:'Lampu mati, tidak ada gelembung gas. Molekul tetap utuh (tidak terionisasi).'
+  },
+  B: {
+    key:'B', bottle:'Botol B', zat:'Cuka Getah (Asam Format)', rumus:'HCOOH',
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1',
+    lamp:'dim', bubbles:5,
+    ciri:'Lampu menyala <b>REDUP / BERKEDIP</b> · gelembung gas <b>SEDIKIT</b>',
+    narasi:'Lampu menyala redup dan gelembung gas sedikit. Cuka getah adalah asam lemah yang hanya terionisasi sebagian.',
+    mikro:{ units:10, ionized:2 },
+    mikroDesc:'Dari 10 molekul HCOOH, hanya <b>2 molekul</b> yang terurai menjadi ion H⁺ dan HCOO⁻; 8 molekul lainnya tetap utuh. Sedikitnya ion bebas membuat hantaran listriknya lemah (0 &lt; α &lt; 1).',
+    journal:'Lampu redup/berkedip, gelembung gas sedikit. Hanya sebagian molekul terionisasi (2 dari 10).'
+  },
+  C: {
+    key:'C', bottle:'Botol C', zat:'Larutan Pupuk ZA', rumus:'(NH₄)₂SO₄',
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1',
+    lamp:'bright', bubbles:16,
+    ciri:'Lampu menyala <b>SANGAT TERANG</b> · gelembung gas <b>SANGAT BANYAK</b>',
+    narasi:'Lampu menyala sangat terang! Pupuk ZA terionisasi sempurna di dalam air.',
+    mikro:{ units:10, ionized:10 },
+    mikroDesc:'Seluruh kristal ZA terurai total menjadi ion amonium (NH₄⁺) dan ion sulfat (SO₄²⁻) yang bergerak cepat menghantarkan arus listrik. Ionisasi sempurna → α = 1.',
+    journal:'Lampu menyala sangat terang, gelembung gas sangat banyak. Seluruh molekul terionisasi sempurna.'
+  }
+};
+const SAMPLE_ORDER = ['A','B','C'];
+let currentSampleKey = 'A';
+
+function renderSample(key){
+  if(!key) key = 'A';
+  currentSampleKey = key;
+  const s = SAMPLES[key];
+  const st = state.samples[key] || (state.samples[key] = { dipped:false, recorded:false, spoken:false });
+
+  const idx = SAMPLE_ORDER.indexOf(key);
+  const progressLabel = `Pengujian Sampel ${idx+1} dari 3`;
+  const nextKey = SAMPLE_ORDER[idx+1];
+
+  const needRinse = electrodeDirty && !st.dipped;
+  const showResult = st.dipped;
+
+  const el = $('#sSample');
+  el.innerHTML = `
+    <p class="eyebrow">Meja Praktikum · ${progressLabel}</p>
+    <h2>Uji ${s.bottle}</h2>
+    <p class="muted">Rumus kimia: <b style="color:var(--accent2)">${s.rumus}</b></p>
+
+    ${needRinse ? `
+    <div class="warn-box">
+      💧 <b>Peringatan!</b> Bilas elektroda dengan aquades terlebih dahulu agar sampel tidak terkontaminasi.
+    </div>` : ''}
+
+    <div class="bench">
+      <div class="bench-visual">
+        <div class="bottle"><span class="bi">🍶</span><span class="bn">${s.bottle}</span>
+          <span class="muted" style="font-size:11px">Isi belum diketahui</span></div>
+        <div class="rig ${st.dipped ? 'dipped' : ''}" id="rig">
+          <div class="lamp ${st.dipped ? s.lamp : ''}" id="rigLamp"></div>
+          <div class="beaker-wrap">
+            <div class="rods"><div class="rod"></div><div class="rod"></div></div>
+            <div class="beaker">
+              <div class="liquid"><div class="bubbles" id="rigBubbles">${st.dipped ? bubbleHTML(s.bubbles) : ''}</div></div>
+            </div>
+          </div>
+          <div class="beaker-tag">Alat Uji Daya Hantar Listrik</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" id="ctrlCard">
+          ${!st.dipped ? `
+            <h3>⚡ Kontrol Pengujian</h3>
+            <p class="muted">Celupkan elektroda ke dalam ${s.bottle} untuk mengamati daya hantar listriknya.</p>
+            <div class="actions" style="margin-top:14px">
+              ${electrodeDirty ? `<button class="btn blue" id="btnRinse">💧 Bilas Elektroda dengan Aquades</button>` : ''}
+              <button class="btn" id="btnDip" ${electrodeDirty ? 'disabled' : ''}>⚡ Celupkan Elektroda ke ${s.bottle}</button>
+            </div>
+          ` : `
+            <h3>📊 Hasil Pengamatan</h3>
+            <div class="result-row"><span>Nyala Lampu</span><b>${s.lamp === 'bright' ? 'TERANG' : s.lamp === 'dim' ? 'REDUP / BERKEDIP' : 'MATI'}</b></div>
+            <div class="result-row"><span>Gelembung Gas</span><b>${s.bubbles === 0 ? 'TIDAK ADA' : s.bubbles < 8 ? 'SEDIKIT' : 'SANGAT BANYAK'}</b></div>
+            <div class="result-row"><span>Klasifikasi Larutan</span><span class="badge ${s.badge}">${s.jenis}</span></div>
+            <div class="result-row"><span>Derajat Ionisasi</span><b>${s.alpha}</b></div>
+            <div class="actions" style="margin-top:16px">
+              <button class="btn blue" id="btnMicro">🔬 Lihat Sub-Mikroskopis</button>
+              ${!st.recorded ? `<button class="btn warm" id="btnRecord">📝 Catat ke Jurnal</button>` : `<span class="pill">✓ Tercatat di jurnal</span>`}
+            </div>
+            ${st.recorded ? `
+              <div class="actions">
+                ${nextKey
+                  ? `<button class="btn" id="btnNextSample">Lanjut Uji Sampel ${nextKey} →</button>`
+                  : `<button class="btn" id="btnToEksplor">Lanjut ke Modul Eksplorasi →</button>`}
+              </div>` : ''}
+          `}
+        </div>
+
+        ${showResult ? `
+        <div class="narrator" id="sampleNarrator">
+          <button class="spk" data-speak="${s.narasi}">🔈</button>
+          <div>
+            <div class="who">Narator</div>
+            <p>“${s.narasi}”</p>
+          </div>
+        </div>` : ''}
+      </div>
+    </div>
+  `;
+
+  bindSampleEvents(key, s, st);
+  wireSpeakers();
+}
+
+function bindSampleEvents(key, s, st){
+  const btnRinse = $('#btnRinse');
+  if(btnRinse){
+    btnRinse.addEventListener('click', () => {
+      sfx.water();
+      electrodeDirty = false;
+      toast('Elektroda dibilas dengan aquades. Bersih!', 'ok');
+      setTimeout(()=> renderSample(key), 400);
+    });
+  }
+
+  const btnDip = $('#btnDip');
+  if(btnDip){
+    btnDip.addEventListener('click', () => {
+      const rig = $('#rig');
+      rig.classList.add('dipped');
+      sfx.water();
+      st.dipped = true;
+      electrodeDirty = true;
+
+      setTimeout(() => {
+        const lamp = $('#rigLamp');
+        lamp.className = 'lamp ' + s.lamp;
+        $('#rigBubbles').innerHTML = bubbleHTML(s.bubbles);
+
+        if(s.lamp === 'bright'){ sfx.bell(); setTimeout(sfx.hum, 200); }
+        else if(s.lamp === 'dim'){ sfx.hum(); }
+
+        setTimeout(() => {
+          if(!st.spoken){
+            st.spoken = true;
+            speak(s.narasi);
+          }
+          setTimeout(() => renderSample(key), 1400);
+        }, 500);
+      }, 900);
+    });
+  }
+
+  const btnMicro = $('#btnMicro');
+  if(btnMicro){
+    btnMicro.addEventListener('click', () => { sfx.tap(); openMicro(s); });
+  }
+
+  const btnRecord = $('#btnRecord');
+  if(btnRecord){
+    btnRecord.addEventListener('click', () => {
+      st.recorded = true;
+      addJournal({
+        title: `${s.bottle} — ${s.zat}`,
+        ciri: s.journal, jenis: s.jenis, alpha: s.alpha
+      });
+      sfx.correct();
+      toast('Data tercatat di jurnal praktikum.', 'ok');
+      renderSample(key);
+    });
+  }
+
+  const btnNext = $('#btnNextSample');
+  if(btnNext){
+    btnNext.addEventListener('click', () => {
+      sfx.click();
+      renderSample(SAMPLE_ORDER[SAMPLE_ORDER.indexOf(key)+1]);
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  }
+  const btnEks = $('#btnToEksplor');
+  if(btnEks){
+    btnEks.addEventListener('click', () => { sfx.click(); goTo('s11'); });
+  }
+  wireSpeakers();
+}
+
+/* ============================================================
+   SCENE 11 — EKSPLORASI (70 sampel, 3 kategori)
+   ============================================================ */
+const EKSPLOR_CATS = [
+  { id:'alam',   label:'🌿 Bahan Alam Pedesaan' },
+  { id:'kimia',  label:'🧪 Larutan Kimia Universal' },
+  { id:'sehari', label:'🥤 Minuman & Bahan Sehari-hari' }
+];
+
+const EKSPLOR = [
+  /* ---- 🌿 BAHAN ALAM PEDESAAN (16) ---- */
+  { id:'tawas',       cat:'alam', ico:'🧂', nm:'Tawas Penjernih Air',       lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat',  badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'kapursirih',  cat:'alam', ico:'🪨', nm:'Air Kapur Sirih',           lamp:'bright', bubbles:12,
+    jenis:'Elektrolit Kuat',  badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'lindi',       cat:'alam', ico:'🪵', nm:'Air Lindi Abu Dapur',       lamp:'bright', bubbles:13,
+    jenis:'Elektrolit Kuat',  badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'airlaut',     cat:'alam', ico:'🌊', nm:'Air Laut',                  lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat',  badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'gambut',      cat:'alam', ico:'🌊', nm:'Air Sungai Gambut',         lamp:'dim',    bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'hujan',       cat:'alam', ico:'🌧️', nm:'Air Hujan Perkebunan',      lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'airsumur',    cat:'alam', ico:'💧', nm:'Air Sumur',                 lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'kelapamuda',  cat:'alam', ico:'🥥', nm:'Air Kelapa Muda',           lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'nira',        cat:'alam', ico:'🍶', nm:'Air Nira / Saguer',         lamp:'dim',    bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'sawah',       cat:'alam', ico:'🌾', nm:'Air Tanah Sawah',           lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'cucianberas', cat:'alam', ico:'🍚', nm:'Air Cucian Beras',          lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'sirih',       cat:'alam', ico:'🍃', nm:'Air Rebusan Daun Sirih',    lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'jerami',      cat:'alam', ico:'🌾', nm:'Air Rendaman Jerami',       lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'kulitpisang', cat:'alam', ico:'🍌', nm:'Air Rendaman Kulit Pisang', lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'kunyit',      cat:'alam', ico:'🟡', nm:'Air Kunyit',                lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'lateks',      cat:'alam', ico:'🌳', nm:'Getah Karet (Lateks)',      lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',   alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+
+  /* ---- 🧪 LARUTAN KIMIA UNIVERSAL (32) ---- */
+  { id:'hcl',     cat:'kimia', ico:'🧪', nm:'HCl (Asam Klorida)',     lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'hbr',     cat:'kimia', ico:'🧪', nm:'HBr (Asam Bromida)',     lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'hi',      cat:'kimia', ico:'🧪', nm:'HI (Asam Iodida)',       lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'hno3',    cat:'kimia', ico:'🧪', nm:'HNO₃ (Asam Nitrat)',     lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'h2so4',   cat:'kimia', ico:'🧪', nm:'H₂SO₄ (Asam Sulfat)',    lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'hclo4',   cat:'kimia', ico:'🧪', nm:'HClO₄ (Asam Perklorat)', lamp:'bright', bubbles:16,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'naoh',    cat:'kimia', ico:'🧪', nm:'NaOH (Natrium Hidroksida)',   lamp:'bright', bubbles:15,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'koh',     cat:'kimia', ico:'🧪', nm:'KOH (Kalium Hidroksida)',     lamp:'bright', bubbles:15,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'caoh2',   cat:'kimia', ico:'🧪', nm:'Ca(OH)₂ (Kalsium Hidroksida)', lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'baoh2',   cat:'kimia', ico:'🧪', nm:'Ba(OH)₂ (Barium Hidroksida)', lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'nacl',    cat:'kimia', ico:'🧂', nm:'NaCl (Natrium Klorida)',      lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'kcl',     cat:'kimia', ico:'🧂', nm:'KCl (Kalium Klorida)',        lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'cacl2',   cat:'kimia', ico:'🧂', nm:'CaCl₂ (Kalsium Klorida)',     lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'mgso4',   cat:'kimia', ico:'🧂', nm:'MgSO₄ (Magnesium Sulfat)',    lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'cuso4',   cat:'kimia', ico:'🔵', nm:'CuSO₄ (Tembaga Sulfat)',      lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'kno3',    cat:'kimia', ico:'🧂', nm:'KNO₃ (Kalium Nitrat)',        lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'nh42so4', cat:'kimia', ico:'🧂', nm:'(NH₄)₂SO₄ (Amonium Sulfat)',  lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'ch3cooh', cat:'kimia', ico:'🧪', nm:'CH₃COOH (Asam Asetat)',   lamp:'dim', bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'hcooh',   cat:'kimia', ico:'🧪', nm:'HCOOH (Asam Format)',     lamp:'dim', bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'h2co3',   cat:'kimia', ico:'🧪', nm:'H₂CO₃ (Asam Karbonat)',   lamp:'dim', bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'h3po4',   cat:'kimia', ico:'🧪', nm:'H₃PO₄ (Asam Fosfat)',     lamp:'dim', bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'hf',      cat:'kimia', ico:'🧪', nm:'HF (Asam Fluorida)',      lamp:'dim', bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'h2s',     cat:'kimia', ico:'🧪', nm:'H₂S (Asam Sulfida)',      lamp:'dim', bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'hcn',     cat:'kimia', ico:'🧪', nm:'HCN (Asam Sianida)',      lamp:'dim', bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'nh4oh',   cat:'kimia', ico:'🧪', nm:'NH₄OH (Amonium Hidroksida)',      lamp:'dim', bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'aloh3',   cat:'kimia', ico:'🧪', nm:'Al(OH)₃ (Aluminium Hidroksida)',  lamp:'dim', bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'feoh3',   cat:'kimia', ico:'🧪', nm:'Fe(OH)₃ (Besi(III) Hidroksida)',  lamp:'dim', bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak', alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'glukosa', cat:'kimia', ico:'🍬', nm:'C₆H₁₂O₆ (Glukosa)',  lamp:'off', bubbles:0,
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'sukrosa', cat:'kimia', ico:'🍬', nm:'C₁₂H₂₂O₁₁ (Sukrosa)', lamp:'off', bubbles:0,
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'etanol',  cat:'kimia', ico:'🍶', nm:'C₂H₅OH (Etanol)',     lamp:'off', bubbles:0,
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'metanol', cat:'kimia', ico:'🍶', nm:'CH₃OH (Metanol)',     lamp:'off', bubbles:0,
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'aseton',  cat:'kimia', ico:'🧴', nm:'CH₃COCH₃ (Aseton)',   lamp:'off', bubbles:0,
+    jenis:'Non-Elektrolit', badge:'none', alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+
+  /* ---- 🥤 MINUMAN & BAHAN SEHARI-HARI (22) ---- */
+  { id:'aquades',     cat:'sehari', ico:'💧', nm:'Air Putih / Aquades',       lamp:'off',    bubbles:0,
+    jenis:'Non-Elektrolit',  badge:'none',   alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'airgaram',    cat:'sehari', ico:'🧂', nm:'Air Garam Dapur',           lamp:'bright', bubbles:14,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'airgula',     cat:'sehari', ico:'🍯', nm:'Air Gula',                  lamp:'off',    bubbles:0,
+    jenis:'Non-Elektrolit',  badge:'none',   alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'cuka',        cat:'sehari', ico:'🍶', nm:'Cuka Dapur',                lamp:'dim',    bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'susu',        cat:'sehari', ico:'🥛', nm:'Susu Sapi',                 lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'yogurt',      cat:'sehari', ico:'🥛', nm:'Yogurt',                    lamp:'dim',    bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'yakult',      cat:'sehari', ico:'🍶', nm:'Yakult',                    lamp:'dim',    bubbles:5,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'kopi',        cat:'sehari', ico:'☕', nm:'Kopi Hitam',                lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'teh',         cat:'sehari', ico:'🍵', nm:'Teh',                       lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'tehkemasan',  cat:'sehari', ico:'🧃', nm:'Teh Kemasan Manis',         lamp:'dim',    bubbles:3,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'fanta',       cat:'sehari', ico:'🥤', nm:'Fanta',                     lamp:'dim',    bubbles:6,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'sprite',      cat:'sehari', ico:'🥤', nm:'Sprite',                    lamp:'dim',    bubbles:6,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'cocacola',    cat:'sehari', ico:'🥤', nm:'Coca Cola',                 lamp:'dim',    bubbles:6,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'pocari',      cat:'sehari', ico:'🧴', nm:'Minuman Isotonik (Pocari)', lamp:'bright', bubbles:12,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'popice',      cat:'sehari', ico:'🥤', nm:'Pop Ice',                   lamp:'off',    bubbles:0,
+    jenis:'Non-Elektrolit',  badge:'none',   alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'sirup',       cat:'sehari', ico:'🍹', nm:'Sirup',                     lamp:'off',    bubbles:0,
+    jenis:'Non-Elektrolit',  badge:'none',   alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'kecap',       cat:'sehari', ico:'🍶', nm:'Kecap Manis',               lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'saustomat',   cat:'sehari', ico:'🍅', nm:'Saus Tomat',                lamp:'dim',    bubbles:4,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'minyak',      cat:'sehari', ico:'🫗', nm:'Minyak Goreng',             lamp:'off',    bubbles:0,
+    jenis:'Non-Elektrolit',  badge:'none',   alpha:'α = 0', ciri:'Lampu MATI, tidak ada gelembung' },
+  { id:'airdeterjen', cat:'sehari', ico:'🧼', nm:'Air Detergen',              lamp:'bright', bubbles:12,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' },
+  { id:'airsabun',    cat:'sehari', ico:'🧼', nm:'Air Sabun',                 lamp:'dim',    bubbles:6,
+    jenis:'Elektrolit Lemah', badge:'weak',  alpha:'0 < α < 1', ciri:'Lampu REDUP, gelembung SEDIKIT' },
+  { id:'pemutih',     cat:'sehari', ico:'🧴', nm:'Pemutih Pakaian (Bayclin)', lamp:'bright', bubbles:13,
+    jenis:'Elektrolit Kuat', badge:'strong', alpha:'α = 1', ciri:'Lampu TERANG, gelembung BANYAK' }
+];
+
+let eksCurrent = null;
+const eksTested = new Set();
+
+function renderEksplor(){
+  const wrap = $('#eksList');
+  if(!wrap) return;
+
+  wrap.innerHTML = EKSPLOR_CATS.map(cat => {
+    const items = EKSPLOR.filter(e => e.cat === cat.id);
+    if(!items.length) return '';
+    return `
+      <div class="eks-cat">
+        <div class="eks-cat-label">${cat.label}<span class="cat-count">${items.length} sampel</span></div>
+        <div class="eks-chips">
+          ${items.map(e => `
+            <div class="chip" data-id="${e.id}">
+              <span class="ico">${e.ico}</span>
+              <span>${e.nm}</span>
+              ${eksTested.has(e.id) ? '<span class="done">✓</span>' : ''}
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  if(eksCurrent){
+    const sel = wrap.querySelector(`.chip[data-id="${eksCurrent.id}"]`);
+    if(sel) sel.classList.add('selected');
+  }
+
+  const prog = $('#eksProgress');
+  if(prog) prog.textContent = `${eksTested.size} / ${EKSPLOR.length} diuji`;
+
+  wrap.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.id;
+      eksCurrent = EKSPLOR.find(e => e.id === id);
+      $('#eksBottleName').textContent = eksCurrent.nm;
+      $('#eksBottle .bi').textContent = eksCurrent.ico;
+      $('#eksRinse').disabled = !electrodeDirty;
+      $('#eksDip').disabled = electrodeDirty;
+      $('#eksRig').classList.remove('dipped');
+      $('#eksLamp').className = 'lamp';
+      $('#eksBubbles').innerHTML = '';
+      $('#eksResult').innerHTML = '<p class="muted" style="margin:0">Sampel dipilih. Bilas elektroda bila perlu, lalu celupkan.</p>';
+      sfx.tap();
+      wrap.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+      chip.scrollIntoView({block:'nearest', behavior:'smooth'});
+    });
+  });
+}
+
+$('#eksRinse').addEventListener('click', () => {
+  sfx.water(); electrodeDirty = false;
+  $('#eksRinse').disabled = true; $('#eksDip').disabled = false;
+  toast('Elektroda dibilas dengan aquades.', 'ok');
+});
+$('#eksDip').addEventListener('click', () => {
+  if(!eksCurrent) return;
+  const e = eksCurrent;
+  $('#eksRig').classList.add('dipped');
+  sfx.water(); electrodeDirty = true;
+  $('#eksDip').disabled = true; $('#eksRinse').disabled = false;
+
+  setTimeout(() => {
+    $('#eksLamp').className = 'lamp ' + e.lamp;
+    $('#eksBubbles').innerHTML = bubbleHTML(e.bubbles);
+    if(e.lamp === 'bright'){ sfx.bell(); setTimeout(sfx.hum, 180); } else if(e.lamp === 'dim'){ sfx.hum(); }
+    eksTested.add(e.id);
+
+    speak(`Hasil pengujian ${e.nm}: ${e.ciri.toLowerCase()}. Termasuk ${e.jenis}.`);
+
+    $('#eksResult').innerHTML = `
+      <h3>📊 Hasil: ${e.nm}</h3>
+      <div class="result-row"><span>Nyala Lampu</span><b>${e.lamp === 'bright' ? 'TERANG' : e.lamp === 'dim' ? 'REDUP' : 'MATI'}</b></div>
+      <div class="result-row"><span>Gelembung Gas</span><b>${e.bubbles === 0 ? 'TIDAK ADA' : e.bubbles > 8 ? 'BANYAK' : 'SEDIKIT'}</b></div>
+      <div class="result-row"><span>Klasifikasi</span><span class="badge ${e.badge}">${e.jenis}</span></div>
+      <div class="result-row"><span>Derajat Ionisasi</span><b>${e.alpha}</b></div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn warm" id="eksRecord">📝 Catat ke Jurnal</button>
+      </div>`;
+    $('#eksRecord').addEventListener('click', () => {
+      addJournal({ title: `Eksplorasi — ${e.nm}`, ciri: e.ciri, jenis: e.jenis, alpha: e.alpha });
+      sfx.correct(); toast('Data eksplorasi tercatat.', 'ok');
+      $('#eksRecord').disabled = true; $('#eksRecord').textContent = '✓ Tercatat';
+    });
+
+    const chip = document.querySelector(`#eksList .chip[data-id="${e.id}"]`);
+    if(chip && !chip.querySelector('.done')){
+      const done = document.createElement('span');
+      done.className = 'done'; done.textContent = '✓';
+      chip.appendChild(done);
+    }
+    const prog = $('#eksProgress');
+    if(prog) prog.textContent = `${eksTested.size} / ${EKSPLOR.length} diuji`;
+  }, 900);
+});
+$('#eksNext').addEventListener('click', () => { sfx.click(); renderLabeling(); goTo('s12'); });
+
+/* ============================================================
+   SCENE 12 — PELABELAN, INFO SENYAWA & LAPORAN
+   ============================================================ */
+const LABELS = [
+  { id:'urea', text:'PUPUK UREA (Non-Elektrolit)', target:'A' },
+  { id:'cuka', text:'CUKA GETAH (Elektrolit Lemah)', target:'B' },
+  { id:'za', text:'PUPUK ZA (Elektrolit Kuat)', target:'C' }
+];
+const BOTTLE_HINT = {
+  A: 'Lampu MATI, tidak ada gelembung gas',
+  B: 'Lampu REDUP, gelembung gas SEDIKIT',
+  C: 'Lampu TERANG, gelembung gas BANYAK'
+};
+
+function renderLabeling(){
+  const row = $('#labelRow');
+  row.innerHTML = SAMPLE_ORDER.map(k => `
+    <div class="bottle-card">
+      <div class="bi">🍶</div>
+      <div class="bn">Botol ${k}</div>
+      <div class="bh">${BOTTLE_HINT[k]}</div>
+      <div class="slot" data-bottle="${k}" style="min-height:58px">Letakkan stiker di sini</div>
+    </div>`).join('');
+
+  $('#stickerTray').innerHTML = LABELS.map(l =>
+    `<div class="sticker" data-id="${l.id}" data-target="${l.target}">${l.text}</div>`
+  ).join('');
+
+  $$('#stickerTray .sticker').forEach(makePickable);
+
+  $$('#labelRow .slot').forEach(slot => {
+    makeDropZone(slot, (sticker, zone) => {
+      if(zone.classList.contains('filled')) return;
+      if(sticker.dataset.target === zone.dataset.bottle){
+        zone.classList.add('filled');
+        zone.textContent = sticker.textContent + ' ✓';
+        zone.style.fontSize = '11px'; zone.style.color = 'var(--accent)';
+        sticker.classList.add('used');
+        sticker.style.opacity = '.25'; sticker.style.pointerEvents = 'none';
+        state.label.score++; sfx.bell(); clearPick();
+        if(state.label.score === 3){
+          state.label.done = true;
+          buildReport();
+          $('#compoundInfo').style.display = 'block';
+          $('#finalNarrator').style.display = 'flex';
+          $('#toRefleksi').style.display = 'inline-block';
+          setTimeout(()=>{ sfx.fanfare(); toast('Semua botol berhasil dilabeli dengan benar!', 'ok'); }, 300);
+          setTimeout(()=>{ speak('Luar biasa! Kamu telah berhasil membantu Pak Tani mengidentifikasi seluruh cairan dengan tepat. Perhatikan senyawa paling akhir dalam setiap botol pada kartu di bawah.'); }, 1000);
+        }
+      } else {
+        zone.classList.add('wrong'); sfx.buzz();
+        toast('Label belum sesuai. Periksa kembali data pengamatanmu.', 'bad');
+        clearPick();
+        setTimeout(()=> zone.classList.remove('wrong'), 520);
+      }
+    });
+  });
+}
+
+function buildReport(){
+  const total = state.t3.score + state.rakit.score + state.label.score;
+  const nilai = total * 10;
+  $('#repNama').textContent = state.nama || '-';
+  $('#repKelas').textContent = state.kelas || '-';
+
+  const rows = SAMPLE_ORDER.map((k, i) => {
+    const s = SAMPLES[k];
+    return `<tr>
+      <td>${i+1}</td>
+      <td>Botol ${k}</td>
+      <td>${s.zat}</td>
+      <td>${s.ciri.replace(/<\/?b>/g,'')}</td>
+      <td><span class="badge ${s.badge}">${s.jenis}</span></td>
+      <td><b>${s.alpha}</b></td>
+    </tr>`;
+  });
+  $('#repBody').innerHTML = rows.join('');
+  $('#repScore').textContent = `Nilai Evaluasi Objektif: ${nilai} / 100  ·  (Ruang Teori ${state.t3.score}/3 · Perakitan ${state.rakit.score}/4 · Pelabelan ${state.label.score}/3)`;
+  $('#reportCard').style.display = 'block';
+}
+
+$('#toRefleksi').addEventListener('click', ()=>{ sfx.click(); goTo('sRefleksi'); });
+
+$('#btnDownload').addEventListener('click', () => {
+  sfx.click();
+  const total = state.t3.score + state.rakit.score + state.label.score;
+  const nilai = total * 10;
+  const rows = SAMPLE_ORDER.map((k,i) => {
+    const s = SAMPLES[k];
+    return `<tr>
+      <td>${i+1}</td><td>Botol ${k}</td><td>${s.zat}</td>
+      <td>${s.ciri.replace(/<\/?b>/g,'')}</td>
+      <td>${s.jenis}</td><td>${s.alpha}</td>
+    </tr>`;
+  }).join('');
+
+  const journals = state.journal.map(j =>
+    `<div style="border-left:3px solid #3ddc97;padding:6px 12px;margin:8px 0;background:#f6faf9">
+      <b>${j.title}</b><br><span style="font-size:12px">${j.ciri} · ${j.jenis} · ${j.alpha}</span>
+    </div>`).join('') || '<p style="color:#888">Tidak ada catatan.</p>';
+
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
+  <title>Laporan Praktikum - ${escapeHtml(state.nama)}</title>
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#20302e;padding:38px;max-width:820px;margin:auto;line-height:1.6}
+    h1{font-size:21px;border-bottom:3px solid #3ddc97;padding-bottom:10px;margin-bottom:4px}
+    .sub{color:#6a807c;font-size:13px;margin-bottom:22px}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+    th,td{border:1px solid #cfdedb;padding:8px 10px;text-align:left}
+    th{background:#e9f7f2;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+    .box{background:#f4faf8;border:1px solid #cdeae0;border-radius:10px;padding:16px;margin:18px 0}
+    .score{font-size:19px;font-weight:800;color:#12a06e}
+    .foot{margin-top:34px;font-size:12px;color:#7b8f8b;border-top:1px dashed #cfdedb;padding-top:12px}
+  </style></head><body>
+  <h1>Laporan Praktikum Digital</h1>
+  <div class="sub">Micro-Virtual Lab: Uji Daya Hantar Listrik Larutan · Kimia Lingkungan</div>
+
+  <div class="box">
+    <b>Nama Siswa:</b> ${escapeHtml(state.nama)}<br>
+    <b>Kelas / Kelompok:</b> ${escapeHtml(state.kelas)}<br>
+    <b>Tanggal:</b> ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}
+  </div>
+
+  <h3>Tabel Hasil Pengamatan</h3>
+  <table>
+    <thead><tr><th>No</th><th>Sampel</th><th>Zat</th><th>Ciri Pengamatan</th><th>Jenis Larutan</th><th>α</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <h3 style="margin-top:26px">Senyawa Paling Akhir yang Terkandung</h3>
+  <ul>
+    <li><b>Botol A</b> — Pupuk Urea: CO(NH₂)₂ · Non-Elektrolit</li>
+    <li><b>Botol B</b> — Cuka Getah: HCOOH (asam format) · Elektrolit Lemah</li>
+    <li><b>Botol C</b> — Pupuk ZA: (NH₄)₂SO₄ (amonium sulfat) · Elektrolit Kuat</li>
+  </ul>
+
+  <h3 style="margin-top:26px">Catatan Jurnal</h3>
+  ${journals}
+
+  <div class="box">
+    <div class="score">Nilai Evaluasi Objektif: ${nilai} / 100</div>
+    <div style="font-size:13px;color:#5c716d">
+      Ruang Teori (matching α): ${state.t3.score}/3 &nbsp;·&nbsp;
+      Perakitan Alat Uji: ${state.rakit.score}/4 &nbsp;·&nbsp;
+      Pelabelan Botol: ${state.label.score}/3
+    </div>
+  </div>
+
+  <h3>Kesimpulan</h3>
+  <p>Daya hantar listrik larutan ditentukan oleh banyaknya ion bebas di dalam larutan.
+  Elektrolit kuat (α = 1) terionisasi sempurna sehingga lampu menyala terang dan gelembung gas banyak;
+  elektrolit lemah (0 &lt; α &lt; 1) terionisasi sebagian sehingga lampu redup;
+  sedangkan non-elektrolit (α = 0) tidak terionisasi sehingga lampu mati.</p>
+
+  <div class="foot">Dihasilkan otomatis oleh Micro-Virtual Lab — Media Pembelajaran Kimia SMA.</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup diblokir. Izinkan popup untuk mengunduh laporan.', 'bad'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500);
+});
+
+/* ============================================================
+   ESSAY (Refleksi & Evaluasi) — tanpa pembahasan
+   ============================================================ */
+const REFLEKSI_QS = [
+  { key:'refl1', q:'Berdasarkan hasil percobaanmu, mengapa larutan pupuk urea (Botol A) tidak dapat menyalakan lampu meskipun telah dilarutkan dalam air? Kaitkan jawabanmu dengan jenis ikatan dan keberadaan ion bebas.' },
+  { key:'refl2', q:'Bandingkan hasil pengujian cuka getah (Botol B) dan pupuk ZA (Botol C)! Mengapa keduanya menghasilkan nyala lampu yang berbeda meskipun sama-sama berupa larutan? Jelaskan berdasarkan konsep derajat ionisasi (α).' },
+  { key:'refl3', q:'Jelaskan hubungan antara jumlah ion bebas di dalam larutan dengan kemampuan larutan dalam menghantarkan listrik! Berikan 1 contoh dari percobaanmu untuk memperkuat jawaban.' },
+  { key:'refl4', q:'Tuliskan kesimpulanmu tentang perbedaan larutan elektrolit kuat, elektrolit lemah, dan non-elektrolit berdasarkan percobaan yang telah kamu lakukan! Sertakan nama zat (rumus kimianya) yang kamu gunakan sebagai contoh.' }
+];
+
+const EVAL_QS = [
+  { key:'eval1',
+    q:'Larutan garam dapur (NaCl) dapat menghantarkan listrik, sedangkan larutan gula (C₁₂H₂₂O₁₁) tidak dapat menghantarkan listrik. Jelaskan mengapa demikian berdasarkan proses ionisasi yang terjadi di dalam air!' },
+  { key:'eval2',
+    q:'Diketahui tiga larutan: HCl, CH₃COOH, dan C₂H₅OH. Urutkan ketiga larutan tersebut dari yang paling kuat hingga paling lemah daya hantar listriknya! Jelaskan alasanmu berdasarkan konsep ionisasi!' },
+  { key:'eval3',
+    q:'Tuliskan persamaan reaksi ionisasi lengkap untuk senyawa berikut, lalu tentukan jenis elektrolitnya:\n  a. KOH\n  b. NH₄OH\n  c. CO(NH₂)₂' },
+  { key:'eval4',
+    q:'Seorang siswa melarutkan 0,5 mol senyawa X ke dalam air. Setelah diuji, ternyata hanya 0,1 mol yang terurai menjadi ion. Tentukan derajat ionisasi (α) senyawa X tersebut! Termasuk jenis elektrolit apakah senyawa X?' },
+  { key:'eval5',
+    q:'Mengapa asam kuat seperti HCl memiliki α = 1, sedangkan asam lemah seperti CH₃COOH memiliki 0 < α < 1? Jelaskan berdasarkan proses ionisasi molekul-molekulnya di dalam air!' }
+];
+
+function saveEssay(key, val){
+  try{ localStorage.setItem('mvl_'+key, val); }catch(e){}
+}
+function loadEssay(key){
+  try{ return localStorage.getItem('mvl_'+key) || ''; }catch(e){ return ''; }
+}
+
+function renderEssay(type){
+  const listId = type === 'refleksi' ? '#refleksiList' : '#evalList';
+  const qs = type === 'refleksi' ? REFLEKSI_QS : EVAL_QS;
+  const container = $(listId);
+  if(!container) return;
+
+  container.innerHTML = qs.map((item, i) => `
+    <div class="essay-item">
+      <div class="qhead">
+        <span class="qnum">${i+1}</span>
+        <div class="qtext">${item.q.replace(/\n/g, '<br>')}</div>
+      </div>
+      <textarea data-essay="${item.key}" placeholder="Tulis jawabanmu di sini...">${escapeHtml(loadEssay(item.key))}</textarea>
+      <div class="answer-bar">
+        <span class="saved" id="saved_${item.key}">✓ Jawaban tersimpan</span>
+      </div>
+    </div>
+  `).join('');
+
+  $$(listId + ' textarea').forEach(ta => {
+    const key = ta.dataset.essay;
+    let timer = null;
+    ta.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        saveEssay(key, ta.value);
+        const indicator = document.getElementById('saved_' + key);
+        if(indicator){ indicator.classList.add('show'); setTimeout(()=> indicator.classList.remove('show'), 1200); }
+      }, 400);
+    });
+  });
+}
+
+$('#toEval').addEventListener('click', ()=>{ sfx.click(); goTo('sEval'); });
+
+$('#evalDownload').addEventListener('click', () => {
+  sfx.click();
+  const buildBlock = (qs, title) => {
+    const items = qs.map((item, i) => {
+      const ans = loadEssay(item.key).trim() || '<i style="color:#999">(belum dijawab)</i>';
+      return `<div style="margin-bottom:18px;page-break-inside:avoid">
+        <div style="font-weight:700;margin-bottom:6px">${i+1}. ${item.q.replace(/\n/g,'<br>')}</div>
+        <div style="background:#f4faf8;border-left:3px solid #3ddc97;padding:10px 14px;border-radius:6px;white-space:pre-wrap">${ans.replace(/\n/g,'<br>')}</div>
+      </div>`;
+    }).join('');
+    return `<h2 style="margin-top:30px;border-bottom:2px solid #3ddc97;padding-bottom:6px">${title}</h2>${items}`;
+  };
+
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8">
+  <title>Jawaban Esai - ${escapeHtml(state.nama)}</title>
+  <style>
+    body{font-family:'Segoe UI',Arial,sans-serif;color:#20302e;padding:38px;max-width:820px;margin:auto;line-height:1.6;font-size:14px}
+    h1{font-size:21px;border-bottom:3px solid #3ddc97;padding-bottom:10px;margin-bottom:4px}
+    h2{font-size:17px;margin-top:30px}
+    .sub{color:#6a807c;font-size:13px;margin-bottom:22px}
+    .box{background:#f4faf8;border:1px solid #cdeae0;border-radius:10px;padding:16px;margin:18px 0}
+    .foot{margin-top:34px;font-size:12px;color:#7b8f8b;border-top:1px dashed #cfdedb;padding-top:12px}
+  </style></head><body>
+  <h1>Jawaban Esai Siswa</h1>
+  <div class="sub">Micro-Virtual Lab: Uji Daya Hantar Listrik Larutan</div>
+  <div class="box">
+    <b>Nama:</b> ${escapeHtml(state.nama)}<br>
+    <b>Kelas / Kelompok:</b> ${escapeHtml(state.kelas)}<br>
+    <b>Tanggal:</b> ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}
+  </div>
+  ${buildBlock(REFLEKSI_QS, 'Bagian A — Refleksi Praktikum & Kesimpulan')}
+  ${buildBlock(EVAL_QS, 'Bagian B — Evaluasi Esai Universal')}
+  <div class="foot">Dihasilkan otomatis oleh Micro-Virtual Lab.</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if(!w){ toast('Popup diblokir. Izinkan popup untuk mengunduh jawaban.', 'bad'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
+  setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500);
+});
+
+/* ============================================================
+   JURNAL
+   ============================================================ */
+function addJournal(entry){
+  state.journal.push(entry);
+  renderJournal();
+}
+function renderJournal(){
+  const body = $('#journalBody');
+  if(!state.journal.length){
+    body.innerHTML = '<p class="muted">Belum ada catatan. Lakukan pengujian sampel untuk mengisi jurnal.</p>';
+    return;
+  }
+  body.innerHTML = state.journal.map((j, i) => `
+    <div class="jentry">
+      <div class="jt">${i+1}. ${j.title}</div>
+      <div><b>Ciri:</b> ${j.ciri}</div>
+      <div><b>Jenis:</b> ${j.jenis} &nbsp;|&nbsp; <b>${j.alpha}</b></div>
+    </div>`).join('');
+}
+$('#btnJurnal').addEventListener('click', () => { sfx.tap(); $('#journal').classList.toggle('open'); });
+$('#closeJournal').addEventListener('click', () => { sfx.tap(); $('#journal').classList.remove('open'); });
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+function openModal(title, html){
+  $('#modalTitle').textContent = title;
+  $('#modalBody').innerHTML = html;
+  $('#modal').classList.add('open');
+}
+$('#modalClose').addEventListener('click', closeModal);
+$('#modal').addEventListener('click', e => { if(e.target.id === 'modal') closeModal(); });
+function closeModal(){
+  $('#modal').classList.remove('open');
+  if(activeMicro){ activeMicro.destroy(); activeMicro = null; }
+}
+
+function openMicro(sample){
+  openModal(`🔬 Tampilan Sub-Mikroskopis — ${sample.zat}`, `
+    <canvas id="modalCanvas" width="800" height="360"></canvas>
+    <p style="margin-top:14px">${sample.mikroDesc}</p>
+    <div class="result-row"><span>Jumlah molekul terionisasi</span><b>${sample.mikro.ionized} dari ${sample.mikro.units}</b></div>
+    <div class="result-row"><span>Klasifikasi</span><span class="badge ${sample.badge}">${sample.jenis}</span></div>
+    <div class="result-row"><span>Derajat Ionisasi</span><b>${sample.alpha}</b></div>
+  `);
+  const cv = $('#modalCanvas');
+  if(activeMicro) activeMicro.destroy();
+  activeMicro = new MicroView(cv, { units: sample.mikro.units, ionized: sample.mikro.ionized });
+  sfx.pop();
+}
+
+/* ============================================================
+   SPEAKER BUTTONS
+   ============================================================ */
+function wireSpeakers(){
+  $$('.spk').forEach(btn => {
+    if(btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+      const text = btn.dataset.speak;
+      if(text) speak(text);
+      sfx.tap();
+    });
+  });
+}
+
+/* ============================================================
+   SOUND TOGGLE
+   ============================================================ */
+$('#btnSound').addEventListener('click', () => {
+  muted = !muted;
+  const b = $('#btnSound');
+  if(muted){
+    b.textContent = '🔇 Bisu'; b.classList.remove('on');
+    stopMusic();
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  } else {
+    b.textContent = '🔊 Suara'; b.classList.add('on');
+    startMusic(); sfx.click();
+  }
+});
+
+/* ============================================================
+   NAVIGASI GLOBAL
+   ============================================================ */
+document.addEventListener('click', e => {
+  const g = e.target.closest('[data-go]');
+  if(g){
+    sfx.click();
+    const target = g.dataset.go;
+    if(target === 'sSample'){
+      let k = 'A';
+      for(const key of SAMPLE_ORDER){
+        const st = state.samples[key];
+        if(!st || !st.recorded){ k = key; break; }
+        k = key;
+      }
+      renderSample(k);
+    }
+    goTo(target);
+  }
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init(){
+  renderTeori1();
+  renderTeori3();
+  renderRakit();
+  renderEksplor();
+  wireSpeakers();
+  updateProgress('s1');
+  $('#inNama').focus();
+}
+init();
+</script>
+</body>
+</html>
